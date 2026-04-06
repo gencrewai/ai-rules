@@ -1,3 +1,5 @@
+[English](README.md) | [한국어](README.ko.md)
+
 # ai-rules
 
 > Policy is what you say. Harness is what you enforce.
@@ -117,17 +119,18 @@ ai-rules/
 
 ```bash
 # CLI — one line is all you need
-node engine/cli/scaffold.mjs --name my-app
+node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
 
 # Or run directly via Claude Code MCP
-# → scaffold_project(name: "my-app")
+# → scaffold_project(name: "my-app", dev_root: "~/projects")
 ```
 
 This single command:
-- Copies all 12 rules + 9 agents automatically
-- Installs safety hooks in `.claude/hooks/`
+- Composes all 12 rules into a single CLAUDE.md
+- Copies 9 agent role definitions to `.claude/agents/`
+- Generates stack-specific `.env.example` and tool permissions
 - Initializes Git + auto-creates develop branch (protects main)
-- Creates WORKLOG and docs directory structure
+- Sets up AI logs and docs directory structure
 
 Zero external dependencies — uses only Node.js built-in modules. No npm install required.
 
