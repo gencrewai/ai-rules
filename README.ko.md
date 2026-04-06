@@ -4,6 +4,10 @@
 
 > 정책은 말하는 것이고, 하네스는 강제하는 것이다.
 
+<p align="center">
+  <img src="docs/images/ai-rules-overview.png" alt="ai-rules 개요" width="700">
+</p>
+
 AI 코딩 에이전트를 위한 **구조화된 규칙 시스템**.
 텍스트 기반 규칙(advisory)과 코드로 강제하는 가드레일(deterministic)을 결합하여 안전하고 일관된 AI 코딩 환경을 만듭니다.
 
@@ -115,14 +119,18 @@ ai-rules/
 
 ## 빠른 시작
 
-### 방법 A: scaffold 명령어 (1분)
+### 방법 A: scaffold CLI (1분)
 
 ```bash
-# CLI — 한 줄이면 됩니다
-node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
+# 1. ai-rules 클론
+git clone https://github.com/gencrewai/ai-rules.git
+cd ai-rules
 
-# 또는 Claude Code MCP로 직접 실행
-# → scaffold_project(name: "my-app", dev_root: "~/projects")
+# 2. 프로젝트 생성 (ai-rules/ 옆에 ../my-app 생성)
+node engine/cli/scaffold.mjs --name my-app
+
+# 또는 원하는 디렉토리 지정:
+node engine/cli/scaffold.mjs --name my-app --dev-root D:\dev
 ```
 
 이 한 줄의 명령으로:
@@ -134,7 +142,45 @@ node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
 
 외부 의존성 없음 — Node.js 내장 모듈만 사용. npm install 불필요.
 
-### 방법 B: 규칙만 복사-붙여넣기 (5분)
+사용 가능한 스택: `react-fastapi-postgres` (기본), `next-fastapi-postgres`, `react-express-postgres`, `react-express-mongodb`, `next-none-none`
+
+```bash
+# 다른 스택 예시:
+node engine/cli/scaffold.mjs --name my-app --stack next-none-none --no-git
+```
+
+### 방법 B: Claude Code MCP (대화형)
+
+ai-rules를 MCP 서버로 등록하면 Claude Code에서 `scaffold_project`를 바로 사용할 수 있습니다.
+
+**1. MCP 의존성 설치:**
+
+```bash
+cd ai-rules
+npm install
+```
+
+**2. Claude Code MCP 설정에 추가** (`.claude/settings.json` 또는 글로벌 설정):
+
+```json
+{
+  "mcpServers": {
+    "ai-rules": {
+      "command": "node",
+      "args": ["/absolute/path/to/ai-rules/engine/mcp-server/index.mjs"]
+    }
+  }
+}
+```
+
+**3. Claude Code에서 사용:**
+
+```
+"my-app 프로젝트를 만들어줘"
+→ scaffold_project(name: "my-app", dev_root: "/path/to/projects")
+```
+
+### 방법 C: 규칙만 복사-붙여넣기 (5분)
 
 도구 없이 핵심 규칙만 빠르게 적용하려면:
 
@@ -148,12 +194,12 @@ cp core/agents/*.md your-project/.claude/agents/
 
 → [core/README.md](core/README.md)
 
-### 방법 C: sync 엔진 (멀티 프로젝트)
+### 방법 D: sync 엔진 (멀티 프로젝트)
 
 동일한 규칙을 여러 프로젝트에 배포하려면:
 
 ```bash
-cd engine
+cd ai-rules
 npm install
 npm run new -- my-project      # 프로필 생성
 npm run sync                   # 규칙 생성 (dry-run)
