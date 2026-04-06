@@ -10,13 +10,14 @@
  */
 
 import { parseArgs } from 'node:util'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { scaffoldProject } from '../lib/scaffold.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const AI_RULES_ROOT = join(__dirname, '..', '..')
+const AI_RULES_PARENT = join(AI_RULES_ROOT, '..')
 
 // ── Argument Parsing ─────────────────────────────────────────────────────────
 
@@ -56,7 +57,8 @@ Options:
   -h, --help              Help
 
 Path overrides (CLI args or env vars):
-      --dev-root          Project creation root directory (required)
+      --dev-root          Project creation directory
+                          (default: ai-rules parent directory)
                           (env: AI_RULES_DEV_ROOT)
       --ai-rules-root     ai-rules repo path (auto-detected from CLI location)
                           (env: AI_RULES_ROOT)
@@ -65,14 +67,18 @@ Path overrides (CLI args or env vars):
                           If omitted, uses built-in bootstrap (no external deps)
 
 Examples:
-  node engine/cli/scaffold.mjs --name my-app --dev-root .
-  node engine/cli/scaffold.mjs --name my-app --dev-root /home/user/projects
-  node engine/cli/scaffold.mjs --name my-app --dev-root D:\\dev --stack next-none-none --no-git
+  node engine/cli/scaffold.mjs --name my-app
+  node engine/cli/scaffold.mjs --name my-app --dev-root D:\\dev
+  node engine/cli/scaffold.mjs --name my-app --stack next-none-none --no-git
 `.trim())
   process.exit(args.help ? 0 : 1)
 }
 
 // ── Execution ──────────────────────────────────────────────────────────────
+
+const devRoot = args['dev-root']
+  ? resolve(args['dev-root'])
+  : AI_RULES_PARENT
 
 const result = await scaffoldProject({
   name: args.name,
@@ -80,7 +86,7 @@ const result = await scaffoldProject({
   copyOutputDocs: !args['no-docs'],
   gitInit: !args['no-git'],
   paths: {
-    devRoot: args['dev-root'],
+    devRoot,
     starterKitRoot: args['starter-kit-root'] || null,
     aiRulesRoot: args['ai-rules-root'] || AI_RULES_ROOT,
   },
