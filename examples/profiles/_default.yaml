@@ -1,0 +1,63 @@
+# _default.yaml — Default profile template
+# Copy this file and customize for your project
+
+project: my-project
+target_path: ""        # Replace with actual path (e.g., /path/to/my-project)
+github_repo: ""        # your-org/my-project
+
+tools:
+  claude-code:
+    enabled: true
+    output: CLAUDE.md
+  cursor:
+    enabled: false
+    output: .cursor/rules/
+  windsurf:
+    enabled: false
+    output: .windsurfrules
+  plain:
+    enabled: true      # AI-RULES.md — always generated (tool-neutral fallback)
+    output: AI-RULES.md
+
+# Core rule blocks to include (order = output order)
+core:
+  - 01-git
+  - 02-code
+  - 03-security
+  - 04-workflow
+  - 06-session
+  - 07-db
+  - 08-local-env
+  - 08-ui-first
+  - 09-hooks-guide
+  - 10-subagent-patterns
+
+# Agent definitions (.claude/agents/)
+agents:
+  enabled: true
+  include:
+    - planner
+    - builder
+    - reviewer
+
+# Extension blocks (empty for minimal setup)
+extensions: []
+
+# Docs to copy to project
+docs:
+  - checklist/project-kickoff
+  - guide/WORKLOG_AND_FAILURE_LEARNING
+
+files:
+  - WORKLOG/README.md
+
+# Tooling — enforce advisory rules with tools
+tooling:
+  enabled: true
+  commitlint: true
+  husky: true
+  lint_staged: true
+  secret_scan: true
+  stack: ts              # ts | py | mixed | docs
+
+overrides: {}

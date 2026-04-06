@@ -1,0 +1,42 @@
+name: Sync Rules on Push
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'core/**'
+      - 'extensions/**'
+      - 'profiles/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate rules
+        run: node scripts/validate.mjs
+
+      - name: Sync rules
+        run: node scripts/sync.mjs
+
+      - name: Upload output artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: synced-rules-${{ github.sha }}
+          path: output/
+          retention-days: 30
+
+      # Auto-create PR (if GH_TOKEN is set)
+      # - name: Create PRs for each project
+      #   if: env.GH_TOKEN != ''
+      #   run: node scripts/create-prs.mjs
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GH_TOKEN }}

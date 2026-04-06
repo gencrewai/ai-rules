@@ -1,0 +1,65 @@
+{
+  "$schema": "../../schemas/release-gate.schema.json",
+  "modes": {
+    "NORMAL": {
+      "gate_1": {
+        "enabled": true,
+        "blocking": true,
+        "timeout_minutes": 10
+      },
+      "gate_2": {
+        "enabled": true,
+        "blocking": true,
+        "timeout_minutes": 15
+      },
+      "gate_3": {
+        "enabled": false,
+        "blocking": false,
+        "timeout_minutes": 30
+      },
+      "escape_hatch": false,
+      "post_eval_required": false,
+      "threshold_multiplier": 1.0
+    },
+    "SAFE": {
+      "gate_1": {
+        "enabled": true,
+        "blocking": true,
+        "timeout_minutes": 10
+      },
+      "gate_2": {
+        "enabled": true,
+        "blocking": true,
+        "timeout_minutes": 20
+      },
+      "gate_3": {
+        "enabled": true,
+        "blocking": true,
+        "timeout_minutes": 60
+      },
+      "escape_hatch": false,
+      "post_eval_required": false,
+      "threshold_multiplier": 1.1
+    },
+    "EMERGENCY": {
+      "gate_1": {
+        "enabled": true,
+        "blocking": true,
+        "timeout_minutes": 5
+      },
+      "gate_2": {
+        "enabled": false,
+        "blocking": false,
+        "timeout_minutes": 15
+      },
+      "gate_3": {
+        "enabled": false,
+        "blocking": false,
+        "timeout_minutes": 30
+      },
+      "escape_hatch": true,
+      "post_eval_required": true,
+      "threshold_multiplier": 0.8
+    }
+  }
+}

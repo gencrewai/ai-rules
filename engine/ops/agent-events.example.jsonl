@@ -1,0 +1,8 @@
+{"ts":"2026-04-03T08:55:00Z","project":"ai-rules","agent":"leader","event":"daily_scrum_started","status":"running"}
+{"ts":"2026-04-03T08:58:12Z","project":"ai-rules","agent":"leader","event":"daily_scrum_completed","status":"completed","artifacts":["reports/daily/2026-04-03.md"]}
+{"ts":"2026-04-03T09:02:10Z","project":"ai-rules","agent":"builder","event":"task_started","task_id":"feature-ops-001","scope":"approved_branch_or_ticket"}
+{"ts":"2026-04-03T09:07:44Z","project":"ai-rules","agent":"builder","event":"task_blocked","task_id":"feature-ops-001","reason":"approval_needed","category":"dependency_change"}
+{"ts":"2026-04-03T09:08:30Z","project":"ai-rules","agent":"leader","event":"approval_needed","task_id":"feature-ops-001","approval":"P3","target":"dependency_change"}
+{"ts":"2026-04-03T09:15:00Z","project":"ai-rules","agent":"reviewer","event":"review_requested","task_id":"feature-ops-001","branch":"feature/260403-agent-ops"}
+{"ts":"2026-04-03T09:19:22Z","project":"ai-rules","agent":"qa","event":"qa_passed","task_id":"feature-ops-001","checks":["tsc --noEmit","unit tests"]}
+{"ts":"2026-04-03T09:22:41Z","project":"ai-rules","agent":"release-lead","event":"release_ready","task_id":"feature-ops-001","risk":"medium"}

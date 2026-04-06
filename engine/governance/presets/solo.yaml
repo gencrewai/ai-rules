@@ -1,0 +1,71 @@
+# =============================================================================
+# solo.yaml — Solo developer MVG (Minimum Viable Governance) preset
+# =============================================================================
+# Based on v2.1 section 8.1
+# Monthly cost target: ~$10-30
+# Core strategy: Only Gate 1 (static analysis) enabled, basic quality at minimal cost
+# =============================================================================
+
+version: "1.0"
+preset: solo
+release_mode: NORMAL
+
+# -----------------------------------------------------------------------------
+# Gate 1: Static Analysis — enabled
+# Basic code quality with ESLint + type check
+# Cost: $0 (local tools only)
+# -----------------------------------------------------------------------------
+gates:
+  gate_1:
+    enabled: true
+    checks:
+      - "tsc --noEmit"
+      - "eslint ."
+    required: true
+
+  # ---------------------------------------------------------------------------
+  # Gate 2: Confidence Score — disabled
+  # Reason: Golden set maintenance + AI call costs → impractical for solo dev
+  # ---------------------------------------------------------------------------
+  gate_2:
+    enabled: false
+    golden_set_path: ".ai-governance/golden-set/"
+    thresholds_file: ".ai-governance/thresholds.yaml"
+
+  # ---------------------------------------------------------------------------
+  # Gate 3: Cross-Verification — disabled (self-review for high-risk only)
+  # Only self-review for HIGH-RISK changes
+  # AUTO-approve for medium/low-risk if Gate 1 passes
+  # ---------------------------------------------------------------------------
+  gate_3:
+    enabled: false
+    mode: auto
+    sampling_rate: 0.0
+
+# -----------------------------------------------------------------------------
+# Cross-Verification — disabled
+# Solo dev does not need cross-verification agents
+# -----------------------------------------------------------------------------
+cross_verification:
+  enabled: false
+  rounds: 1
+  agents_file: ".ai-governance/agents.yaml"
+
+# -----------------------------------------------------------------------------
+# Escape Hatch — minimal settings
+# Solo dev: 1 approver (self), post-eval within 24 hours
+# -----------------------------------------------------------------------------
+escape_hatch:
+  emergency_approvers: 1
+  post_eval_deadline_hours: 24
+  max_consecutive_bypasses: 3
+
+# -----------------------------------------------------------------------------
+# Observability — disabled
+# Dashboard/metrics collection is overhead for solo dev
+# Manual git log-based review recommended if needed
+# -----------------------------------------------------------------------------
+observability:
+  enabled: false
+  drift_detection: false
+  feedback_loop: false

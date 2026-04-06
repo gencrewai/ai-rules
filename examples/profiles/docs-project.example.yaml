@@ -1,0 +1,36 @@
+# docs-project.example.yaml — Documentation / chatbot project profile
+# Lightweight setup: no frontend/backend CI, minimal tooling
+
+project: my-chatbot
+target_path: /path/to/my-chatbot
+
+tools:
+  claude-code:
+    enabled: false
+  plain:
+    enabled: true
+    output: AI-RULES.md
+
+# Only essential core blocks
+core:
+  - 00-identity
+  - 01-git
+  - 03-security
+  - 04-workflow
+  - 05-responses
+  - 06-session
+
+extensions:
+  - chatbot-heartbeat
+  - chatbot-memory
+
+# Minimal tooling (docs project)
+tooling:
+  enabled: true
+  commitlint: false
+  husky: false
+  lint_staged: false
+  secret_scan: true
+  stack: docs
+
+overrides: {}

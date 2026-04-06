@@ -1,0 +1,17 @@
+{
+  "name": "ai-rules-governance",
+  "version": "0.2.0",
+  "description": "AI Governance Framework — ai-rules integrated version. Provider-Agnostic cross-verification system.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "cross-verify": "node orchestrator/index.mjs",
+    "init": "node scripts/init.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

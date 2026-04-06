@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-governance.dev/schemas/release-gate.schema.json",
+  "title": "Release Gate Configuration",
+  "description": "Schema for .ai-governance/release-gate.json — defines which gates are active per release mode (NORMAL, SAFE, EMERGENCY).",
+  "type": "object",
+  "required": ["modes"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor support."
+    },
+    "modes": {
+      "type": "object",
+      "description": "Gate activation settings per release mode.",
+      "required": ["NORMAL", "SAFE", "EMERGENCY"],
+      "additionalProperties": false,
+      "properties": {
+        "NORMAL": {
+          "$ref": "#/definitions/mode_config",
+          "description": "Standard release flow. All gates operate at baseline thresholds."
+        },
+        "SAFE": {
+          "$ref": "#/definitions/mode_config",
+          "description": "Stricter release flow. Higher thresholds and mandatory cross-verification."
+        },
+        "EMERGENCY": {
+          "$ref": "#/definitions/mode_config",
+          "description": "Emergency bypass flow. Minimal gates with mandatory post-evaluation."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "mode_config": {
+      "type": "object",
+      "description": "Configuration for a single release mode.",
+      "required": ["gate_1", "gate_2", "gate_3"],
+      "additionalProperties": false,
+      "properties": {
+        "gate_1": {
+          "$ref": "#/definitions/gate_setting",
+          "description": "Gate 1: Static Analysis (tsc, eslint, audit, import validation)."
+        },
+        "gate_2": {
+          "$ref": "#/definitions/gate_setting",
+          "description": "Gate 2: Confidence Score evaluation against golden set."
+        },
+        "gate_3": {
+          "$ref": "#/definitions/gate_setting",
+          "description": "Gate 3: Cross-Verification by multiple AI agents."
+        },
+        "escape_hatch": {
+          "type": "boolean",
+          "description": "Whether emergency bypass (escape hatch) is available in this mode.",
+          "default": false
+        },
+        "post_eval_required": {
+          "type": "boolean",
+          "description": "Whether post-evaluation is mandatory after release in this mode.",
+          "default": false
+        },
+        "threshold_multiplier": {
+          "type": "number",
+          "description": "Multiplier applied to base confidence thresholds. >1.0 = stricter, <1.0 = looser.",
+          "minimum": 0.5,
+          "maximum": 2.0,
+          "default": 1.0
+        }
+      }
+    },
+    "gate_setting": {
+      "type": "object",
+      "description": "Individual gate activation and blocking behavior.",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this gate is active in the given mode."
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "If true, gate failure blocks the release. If false, failure is advisory only.",
+          "default": true
+        },
+        "timeout_minutes": {
+          "type": "integer",
+          "description": "Maximum time in minutes before the gate is considered failed.",
+          "minimum": 1,
+          "maximum": 120,
+          "default": 30
+        }
+      }
+    }
+  }
+}

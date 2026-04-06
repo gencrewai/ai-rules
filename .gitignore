@@ -1,0 +1,10 @@
+node_modules/
+output/
+.env
+.env.local
+.claude/
+.cursor/
+.vscode/
+ai_logs/
+*.sql
+backups/

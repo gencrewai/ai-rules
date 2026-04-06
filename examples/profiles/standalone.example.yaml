@@ -1,0 +1,60 @@
+# standalone.example.yaml — Standalone project profile
+# Full core rules, basic agents, solo governance
+
+project: my-demo-app
+target_path: /path/to/my-demo-app
+
+stack:
+  lang: [TypeScript, Python]
+  frameworks: [React, Vite, FastAPI]
+  db: PostgreSQL
+  ai: [ollama, llama3.1]
+
+description: "A standalone demo project with local AI inference"
+
+tools:
+  claude-code:
+    enabled: true
+    output: CLAUDE.md
+  cursor:
+    enabled: true
+    output: .cursor/rules/
+  plain:
+    enabled: true
+    output: AI-RULES.md
+
+agents:
+  enabled: true
+  include:
+    - planner
+    - builder
+    - reviewer
+
+core:
+  - 00-identity
+  - 01-git
+  - 02-code
+  - 03-security
+  - 04-workflow
+  - 05-responses
+  - 06-session
+  - 07-db
+  - 08-local-env
+  - 08-ui-first
+  - 09-hooks-guide
+  - 10-subagent-patterns
+
+extensions: []
+
+governance:
+  enabled: true
+  preset: solo
+  overrides: {}
+
+tooling:
+  enabled: true
+  commitlint: true
+  husky: true
+  lint_staged: true
+  secret_scan: true
+  stack: mixed

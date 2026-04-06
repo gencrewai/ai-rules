@@ -1,0 +1,90 @@
+# saas-fullstack.example.yaml — Full-stack SaaS project profile
+# Includes governance, sub-rules, agent extensions, and all layers
+
+project: my-saas-app
+target_path: /path/to/my-saas-app
+github_repo: your-org/my-saas-app
+
+tools:
+  claude-code:
+    enabled: true
+    output: CLAUDE.md
+    # Sub-rules: directory-specific CLAUDE.md files
+    sub_rules:
+      - path: backend/CLAUDE.md
+        extensions: [my-saas-app-backend]
+      - path: src/CLAUDE.md
+        extensions: [my-saas-app-frontend]
+  cursor:
+    enabled: true
+    output: .cursor/rules/
+  plain:
+    enabled: true
+    output: AI-RULES.md
+
+# Agent definitions with project-specific extensions
+agents:
+  enabled: true
+  include:
+    - planner
+    - architect
+    - orchestrator
+    - security
+    - qa
+    - builder:
+        extensions: [builder]       # agents-ext/my-saas-app/builder.md appended
+    - reviewer:
+        extensions: [reviewer]      # agents-ext/my-saas-app/reviewer.md appended
+    - designer:
+        extensions: [designer]
+
+# Only project-specific extensions (core comes from global profile)
+core: []
+
+extensions:
+  - my-saas-app-backend
+  - my-saas-app-frontend
+  - my-saas-app-ci
+
+docs:
+  - guide/WORKLOG_AND_FAILURE_LEARNING
+
+files:
+  - WORKLOG/README.md
+
+# AI Governance — cross-verification system
+governance:
+  enabled: true
+  preset: saas
+  overrides:
+    cross_verification:
+      verifiers:
+        - id: claude-worker
+          provider: anthropic
+          model: claude-sonnet-4-6
+          agents: [structure, convention, domain]
+      judge:
+        provider: openai
+        model: gpt-4o
+        fallback_provider: anthropic
+        fallback_model: claude-opus-4-6
+    thresholds:
+      payment: 92
+      auth: 88
+
+# Project-specific overrides (keep short, use extensions for longer rules)
+overrides:
+  01-git: |
+    ### Additional Git Rules
+    - agent-guard hook blocks CLAUDE.md violations before PR/commit/push
+  04-workflow: |
+    ### Additional Workflow Rules
+    - Before starting work: always check docs/guide/CHECKLISTS.md
+
+tooling:
+  enabled: true
+  commitlint: true
+  husky: true
+  lint_staged: true
+  secret_scan: true
+  stack: mixed

@@ -1,0 +1,74 @@
+# =============================================================================
+# Confidence Score Thresholds — per-domain confidence thresholds
+# =============================================================================
+# Defines minimum confidence scores per domain for AI-generated code.
+# Scores below thresholds are blocked at Gate 2 and require additional review.
+#
+# Score range: 0 ~ 100
+# Reference: v2.1 section 6.1 per-domain threshold table
+#
+# threshold_multiplier is applied based on release_mode:
+#   NORMAL:    x1.0 (default as-is)
+#   SAFE:      x1.1 (10% increase)
+#   EMERGENCY: x0.8 (20% decrease, post-eval required)
+# =============================================================================
+
+# Schema version
+version: "1.0"
+
+# -----------------------------------------------------------------------------
+# Per-domain thresholds
+# -----------------------------------------------------------------------------
+thresholds:
+  # ---------------------------------------------------------------------------
+  # Low Risk
+  # ---------------------------------------------------------------------------
+  # UI components: pure presentation layer. No business logic.
+  # Errors limited to visual issues, low data corruption risk.
+  ui_components: 65
+
+  # Utility functions: pure functions, no side effects.
+  # Verifiable through unit tests.
+  utils: 70
+
+  # ---------------------------------------------------------------------------
+  # Medium Risk
+  # ---------------------------------------------------------------------------
+  # Business logic: code implementing core domain rules.
+  # Errors can cause incorrect calculations, wrong state transitions, etc.
+  business_logic: 75
+
+  # Form validation: user input validation logic.
+  # Missing validation can lead to incorrect data being stored.
+  form_validation: 78
+
+  # External API integration: third-party API calls and response handling.
+  # Accuracy of error handling, timeouts, and retry logic is critical.
+  external_api: 82
+
+  # ---------------------------------------------------------------------------
+  # High Risk
+  # ---------------------------------------------------------------------------
+  # Auth/authorization: login, session management, permission checks, etc.
+  # Errors can cause unauthorized access, privilege escalation, etc.
+  auth: 85
+
+  # Personal data handling: PII data collection, storage, transfer, deletion.
+  # Errors can cause data breaches and legal liability.
+  personal_data: 88
+
+  # Payment processing: payment creation, verification, refund, etc.
+  # Errors can cause financial loss, double charges, etc. Highest threshold.
+  payment: 90
+
+# -----------------------------------------------------------------------------
+# Custom domain addition guide
+# -----------------------------------------------------------------------------
+# You can add project-specific domains.
+# Example:
+#   medical_records: 92    # Medical data — regulatory compliance required
+#   financial_reports: 88  # Financial reports — accuracy critical
+#   ml_inference: 80       # ML inference — result verification needed
+#
+# Custom domain mapping is configured in .ai-governance/domain-map.yaml.
+# (file path patterns → domain name mapping)

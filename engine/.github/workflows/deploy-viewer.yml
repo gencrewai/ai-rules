@@ -1,0 +1,50 @@
+name: Deploy Viewer to Cloudflare Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'core/**'
+      - 'extensions/**'
+      - 'profiles/**'
+      - 'agents/**'
+      - 'governance/**'
+      - 'docs/**'
+      - 'scripts/export-viewer.mjs'
+      - 'viewer/**'
+
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate viewer data.json
+        run: node scripts/export-viewer.mjs
+
+      - name: Install viewer dependencies
+        run: cd viewer && npm ci
+
+      - name: Build viewer
+        run: cd viewer && npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ai-rules-viewer
+          directory: viewer/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

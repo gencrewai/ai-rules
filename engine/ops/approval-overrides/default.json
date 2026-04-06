@@ -1,0 +1,38 @@
+{
+  "project": "default",
+  "inherits": "ops/approval-matrix.json",
+  "safe_paths": [
+    "docs/**",
+    "tests/**",
+    "scripts/**",
+    "WORKLOG/**",
+    "SESSION.md",
+    "ACTIVE_WORK.md"
+  ],
+  "critical_paths": [
+    ".github/workflows/**",
+    "infra/**",
+    "migrations/**",
+    "backend/app/auth/**",
+    "backend/app/payments/**"
+  ],
+  "safe_categories": [
+    "docs_sync",
+    "report_generation",
+    "test_fix",
+    "lint_fix"
+  ],
+  "explicit_categories": [
+    "dependency_change",
+    "api_breaking_change",
+    "auth_change",
+    "payment_change",
+    "db_change",
+    "deploy_change",
+    "push_pr_deploy"
+  ],
+  "notes": [
+    "Use this file as the starting point for per-project overrides.",
+    "Projects should narrow or expand paths, but should not weaken P3 categories without a documented exception."
+  ]
+}
