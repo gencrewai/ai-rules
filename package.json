@@ -9,13 +9,13 @@
     "url": "https://github.com/gencrewai/ai-rules"
   },
   "scripts": {
-    "new": "node scripts/new.mjs",
-    "sync": "node scripts/sync.mjs",
-    "sync:apply": "node scripts/sync.mjs --apply",
-    "sync:dry": "node scripts/sync.mjs --dry-run",
-    "validate": "node scripts/validate.mjs",
-    "onboard": "node scripts/onboard.mjs",
-    "scaffold": "node cli/scaffold.mjs"
+    "new": "node engine/scripts/new.mjs",
+    "sync": "node engine/scripts/sync.mjs",
+    "sync:apply": "node engine/scripts/sync.mjs --apply",
+    "sync:dry": "node engine/scripts/sync.mjs --dry-run",
+    "validate": "node engine/scripts/validate.mjs",
+    "onboard": "node engine/scripts/onboard.mjs",
+    "scaffold": "node engine/cli/scaffold.mjs"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
