@@ -11,7 +11,13 @@ import {
   existsSync, readdirSync, mkdirSync,
 } from 'fs'
 import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { setupAiLogs } from './ai-logs.mjs'
+import { bootstrapProject } from './bootstrap.mjs'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const AI_RULES_ROOT_DEFAULT = join(__dirname, '..', '..')
 
 // ── Path resolution ─────────────────────────────────────────────────────────
 // Priority: explicit args > env vars > hardcoded defaults
@@ -20,13 +26,13 @@ export function resolvePaths(overrides = {}) {
   return {
     starterKitRoot: overrides.starterKitRoot
       ?? process.env.AI_RULES_STARTER_KIT_ROOT
-      ?? '/path/to/starter-kit',
+      ?? null,
     aiRulesRoot: overrides.aiRulesRoot
       ?? process.env.AI_RULES_ROOT
-      ?? '/path/to/ai-rules',
+      ?? AI_RULES_ROOT_DEFAULT,
     devRoot: overrides.devRoot
       ?? process.env.AI_RULES_DEV_ROOT
-      ?? '/path/to/projects',
+      ?? null,
   }
 }
 
@@ -51,20 +57,38 @@ export async function scaffoldProject(options) {
   } = options
 
   const paths = resolvePaths(pathOverrides)
+  if (!paths.devRoot) {
+    return {
+      log: ['Error: --dev-root is required. Specify the directory where the project will be created.'],
+      isError: true,
+    }
+  }
   const log = []
   const projectDir = join(paths.devRoot, name)
   const outputDocsDir = join(paths.aiRulesRoot, 'output', name)
 
   try {
-    // 1. Run init-project.mjs
+    // 1. Bootstrap project
     log.push('== Step 1: Scaffolding ==')
-    const initCmd = `node scripts/init-project.mjs --name ${name} --stack ${stack} --no-interactive --force`
-    const initResult = execSync(initCmd, {
-      cwd: paths.starterKitRoot,
-      encoding: 'utf-8',
-      timeout: 30000,
-    })
-    log.push(initResult.trim())
+    if (paths.starterKitRoot) {
+      // External starter kit mode
+      const initCmd = `node scripts/init-project.mjs --name ${name} --stack ${stack} --no-interactive --force`
+      const initResult = execSync(initCmd, {
+        cwd: paths.starterKitRoot,
+        encoding: 'utf-8',
+        timeout: 30000,
+      })
+      log.push(initResult.trim())
+    } else {
+      // Self-contained bootstrap (open-source default)
+      const bootstrapLog = await bootstrapProject({
+        projectDir,
+        name,
+        stack,
+        aiRulesRoot: paths.aiRulesRoot,
+      })
+      log.push(...bootstrapLog)
+    }
 
     // 2. Copy ai-rules output documents
     if (copyOutputDocs && existsSync(outputDocsDir)) {
@@ -167,8 +191,11 @@ export async function scaffoldProject(options) {
       log.push('\n== Step 3: Git Init ==')
       execSync('git init', { cwd: projectDir, encoding: 'utf-8' })
       execSync('git add -A', { cwd: projectDir, encoding: 'utf-8' })
+      const commitMsg = paths.starterKitRoot
+        ? `chore: initialize ${name} from AI SaaS starter kit`
+        : `chore: initialize ${name} from ai-rules scaffold`
       const commitResult = execSync(
-        `git commit -m "chore: initialize ${name} from AI SaaS starter kit"`,
+        `git commit -m "${commitMsg}"`,
         { cwd: projectDir, encoding: 'utf-8' }
       )
       log.push(commitResult.trim())

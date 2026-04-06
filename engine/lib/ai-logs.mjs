@@ -8,7 +8,7 @@ export function setupAiLogs({
   logger = () => {},
   dryRun = false,
 }) {
-  const templateDir = join(aiRulesRoot, 'templates', 'ai-logs')
+  const templateDir = join(aiRulesRoot, 'engine', 'templates', 'ai-logs')
   const touchedFiles = []
 
   ensureDirectory(join(projectDir, 'ai_logs'), dryRun, logger)

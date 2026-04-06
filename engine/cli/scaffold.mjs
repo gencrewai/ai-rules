@@ -10,7 +10,13 @@
  */
 
 import { parseArgs } from 'node:util'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { scaffoldProject } from '../lib/scaffold.mjs'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const AI_RULES_ROOT = join(__dirname, '..', '..')
 
 // ── Argument Parsing ─────────────────────────────────────────────────────────
 
@@ -32,10 +38,10 @@ const { values: args } = parseArgs({
 
 if (args.help || !args.name) {
   console.log(`
-ai-rules scaffold — Create a new project from starter kit
+ai-rules scaffold — Create a new project with ai-rules
 
 Usage:
-  node cli/scaffold.mjs --name <project-name> [options]
+  node engine/cli/scaffold.mjs --name <project-name> [options]
 
 Required:
   -n, --name              Project name (kebab-case, e.g., my-app)
@@ -50,17 +56,18 @@ Options:
   -h, --help              Help
 
 Path overrides (CLI args or env vars):
-      --dev-root          Project creation root directory
-                          (env: AI_RULES_DEV_ROOT, default: /path/to/projects)
-      --starter-kit-root  Starter kit path
-                          (env: AI_RULES_STARTER_KIT_ROOT)
-      --ai-rules-root     ai-rules path
+      --dev-root          Project creation root directory (required)
+                          (env: AI_RULES_DEV_ROOT)
+      --ai-rules-root     ai-rules repo path (auto-detected from CLI location)
                           (env: AI_RULES_ROOT)
+      --starter-kit-root  Optional. External starter kit path
+                          (env: AI_RULES_STARTER_KIT_ROOT)
+                          If omitted, uses built-in bootstrap (no external deps)
 
 Examples:
-  node cli/scaffold.mjs --name my-app
-  node cli/scaffold.mjs --name my-app --stack next-fastapi-postgres --no-git
-  node cli/scaffold.mjs --name my-app --dev-root /home/user/projects
+  node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
+  node engine/cli/scaffold.mjs --name my-app --dev-root . --stack next-none-none --no-git
+  node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects --starter-kit-root ~/starter-kit
 `.trim())
   process.exit(args.help ? 0 : 1)
 }
@@ -74,8 +81,8 @@ const result = await scaffoldProject({
   gitInit: !args['no-git'],
   paths: {
     devRoot: args['dev-root'],
-    starterKitRoot: args['starter-kit-root'],
-    aiRulesRoot: args['ai-rules-root'],
+    starterKitRoot: args['starter-kit-root'] || null,
+    aiRulesRoot: args['ai-rules-root'] || AI_RULES_ROOT,
   },
 })
 
