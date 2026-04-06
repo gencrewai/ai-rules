@@ -1,0 +1,96 @@
+# =============================================================================
+# Cross-Verification Agents — agent definitions
+# =============================================================================
+# Defines cross-verification agents used in Gate 3.
+# Each agent independently reviews AI-generated code from their own perspective.
+#
+# Agents evaluate independently without referencing each other's results,
+# then results are synthesized for the final verdict.
+# =============================================================================
+
+# Schema version
+version: "1.0"
+
+# -----------------------------------------------------------------------------
+# Agent definitions
+# -----------------------------------------------------------------------------
+agents:
+  # ---------------------------------------------------------------------------
+  # Structure Agent — structural verification
+  # ---------------------------------------------------------------------------
+  # Evaluates structural soundness of code.
+  # Verifies consistency of file structure, module dependencies, and architecture patterns.
+  - id: structure
+    name: "Structure Verifier"
+    description: "File structure, dependency, and architecture pattern verification"
+    focus_areas:
+      - file_structure       # Whether file/directory structure follows project conventions
+      - dependencies         # Soundness of import/require dependency graph
+      - architecture_pattern # Layer separation (Controller → Service → Repository etc.)
+      - circular_deps        # Circular dependency detection
+      - module_cohesion      # Module cohesion — whether related code is colocated
+    checks:
+      - "Do new files follow the project directory structure conventions"
+      - "Are import paths correct and free of circular dependencies"
+      - "Are there no layer violations (e.g., Controller directly accessing DB)"
+      - "Are there no unnecessary file creations"
+
+  # ---------------------------------------------------------------------------
+  # Convention Agent — convention verification
+  # ---------------------------------------------------------------------------
+  # Evaluates coding style and project convention compliance.
+  # Verifies consistency of naming, error handling patterns, and code style.
+  - id: convention
+    name: "Convention Verifier"
+    description: "Naming, coding style, and error handling pattern verification"
+    focus_areas:
+      - naming              # Variable/function/class naming conventions
+      - coding_style        # Coding style guide compliance
+      - error_handling      # Error handling pattern consistency
+      - logging             # Logging pattern and level appropriateness
+      - type_safety         # TypeScript type safety
+    checks:
+      - "Do variable/function names follow project naming conventions"
+      - "Does error handling use consistent patterns (try-catch, Result types, etc.)"
+      - "Are log levels appropriate and free of PII"
+      - "Is there no use of any type and are types explicit"
+
+  # ---------------------------------------------------------------------------
+  # Domain Agent — domain verification
+  # ---------------------------------------------------------------------------
+  # Evaluates business logic accuracy and security.
+  # Verifies edge case handling, security vulnerabilities, and business rule compliance.
+  - id: domain
+    name: "Domain Verifier"
+    description: "Business logic, edge cases, and security verification"
+    focus_areas:
+      - business_logic      # Accurate implementation of business rules
+      - edge_cases          # Edge case handling for boundary values, null, empty arrays, etc.
+      - security            # Auth, authorization, input validation, XSS, SQL Injection, etc.
+      - data_integrity      # Data consistency and integrity
+      - race_conditions     # Concurrency issues and race conditions
+    checks:
+      - "Are business rules implemented according to requirements"
+      - "Are edge cases (null, undefined, empty values, boundary values) handled"
+      - "Is auth/authorization verification applied to all endpoints"
+      - "Is user input properly validated/escaped"
+      - "Is data consistency guaranteed under concurrent requests"
+
+# -----------------------------------------------------------------------------
+# Verdict rules
+# -----------------------------------------------------------------------------
+verdict:
+  # Final verdict method
+  # unanimous: PASS when all agents pass
+  # majority:  PASS when majority passes
+  # weighted:  verdict based on weighted sum
+  mode: unanimous
+
+  # Weights in weighted mode (sum = 1.0)
+  weights:
+    structure: 0.25
+    convention: 0.25
+    domain: 0.50              # Highest weight for domain verification
+
+  # Pass threshold score in weighted mode (0.0 ~ 1.0)
+  pass_threshold: 0.7

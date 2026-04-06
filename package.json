@@ -1,0 +1,26 @@
+{
+  "name": "ai-rules",
+  "version": "1.0.0",
+  "description": "Multi-AI tool rules synchronization — single source of truth for all AI coding assistants",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gencrewai/ai-rules"
+  },
+  "scripts": {
+    "new": "node scripts/new.mjs",
+    "sync": "node scripts/sync.mjs",
+    "sync:apply": "node scripts/sync.mjs --apply",
+    "sync:dry": "node scripts/sync.mjs --dry-run",
+    "validate": "node scripts/validate.mjs",
+    "onboard": "node scripts/onboard.mjs",
+    "scaffold": "node cli/scaffold.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

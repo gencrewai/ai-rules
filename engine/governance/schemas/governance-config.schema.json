@@ -1,0 +1,292 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-governance.dev/schemas/governance-config.schema.json",
+  "title": "AI Governance Configuration",
+  "description": "Schema for .ai-governance/config.yaml — the central configuration file for AI code governance.",
+  "type": "object",
+  "required": ["version", "preset", "release_mode", "gates"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration schema version.",
+      "enum": ["1.0"],
+      "default": "1.0"
+    },
+    "preset": {
+      "type": "string",
+      "description": "Team size preset. Determines default gate thresholds and cross-verification intensity.",
+      "enum": ["solo", "small-team", "medium-team", "large-team"],
+      "default": "solo"
+    },
+    "release_mode": {
+      "type": "string",
+      "description": "Current release mode. NORMAL: full gates. SAFE: stricter thresholds. EMERGENCY: bypass with post-eval.",
+      "enum": ["NORMAL", "SAFE", "EMERGENCY"],
+      "default": "NORMAL"
+    },
+    "gates": {
+      "type": "object",
+      "description": "Release gate configurations. Each gate acts as a quality checkpoint.",
+      "required": ["gate_1"],
+      "additionalProperties": false,
+      "properties": {
+        "gate_1": {
+          "$ref": "#/definitions/gate_1_config"
+        },
+        "gate_2": {
+          "$ref": "#/definitions/gate_2_config"
+        },
+        "gate_3": {
+          "$ref": "#/definitions/gate_3_config"
+        }
+      }
+    },
+    "cross_verification": {
+      "$ref": "#/definitions/cross_verification_config"
+    },
+    "escape_hatch": {
+      "$ref": "#/definitions/escape_hatch_config"
+    },
+    "observability": {
+      "$ref": "#/definitions/observability_config"
+    }
+  },
+  "definitions": {
+    "gate_1_config": {
+      "type": "object",
+      "description": "Gate 1: Static Analysis — automated checks run before push or on PR.",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether Gate 1 is active.",
+          "default": true
+        },
+        "checks": {
+          "type": "array",
+          "description": "List of CLI commands to execute as static checks.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": ["tsc --noEmit", "eslint ."],
+          "examples": [["tsc --noEmit", "eslint .", "npm audit --audit-level=moderate"]]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "If true, gate failure blocks the release.",
+          "default": true
+        }
+      }
+    },
+    "gate_2_config": {
+      "type": "object",
+      "description": "Gate 2: Confidence Score — AI-generated confidence evaluation against golden set.",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether Gate 2 is active.",
+          "default": true
+        },
+        "golden_set_path": {
+          "type": "string",
+          "description": "Path to the golden test set directory, relative to project root.",
+          "default": ".ai-governance/golden-set/"
+        },
+        "thresholds_file": {
+          "type": "string",
+          "description": "Path to domain-specific confidence thresholds file.",
+          "default": ".ai-governance/thresholds.yaml"
+        }
+      }
+    },
+    "gate_3_config": {
+      "type": "object",
+      "description": "Gate 3: Cross-Verification — multi-agent review of AI-generated code.",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether Gate 3 is active.",
+          "default": false
+        },
+        "mode": {
+          "type": "string",
+          "description": "When to trigger cross-verification. always: every change. sampling: random percentage. auto: risk-based.",
+          "enum": ["always", "sampling", "auto"],
+          "default": "auto"
+        },
+        "sampling_rate": {
+          "type": "number",
+          "description": "Probability of triggering cross-verification when mode is 'sampling'. Range: 0.0 to 1.0.",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        }
+      }
+    },
+    "cross_verification_config": {
+      "type": "object",
+      "description": "Cross-verification settings for multi-agent code review.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable cross-verification system.",
+          "default": false
+        },
+        "rounds": {
+          "type": "integer",
+          "description": "Number of verification rounds. More rounds = higher confidence but slower.",
+          "minimum": 1,
+          "maximum": 3,
+          "default": 1
+        },
+        "agents_file": {
+          "type": "string",
+          "description": "Path to agent definitions file.",
+          "default": ".ai-governance/agents.yaml"
+        },
+        "leader": {
+          "type": "object",
+          "description": "Leader/Judge model configuration for Round 3 independent judgment.",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai"],
+              "default": "openai"
+            },
+            "model": {
+              "type": "string",
+              "default": "gpt-4o"
+            },
+            "fallback_provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai"],
+              "default": "anthropic"
+            },
+            "fallback_model": {
+              "type": "string",
+              "default": "claude-opus-4-20250514"
+            }
+          }
+        },
+        "worker": {
+          "type": "object",
+          "description": "Worker agent model configuration for Round 1-2 analysis.",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai"],
+              "default": "anthropic"
+            },
+            "model": {
+              "type": "string",
+              "default": "claude-sonnet-4-20250514"
+            }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "description": "Cost control settings.",
+          "additionalProperties": false,
+          "properties": {
+            "max_tokens_per_round": {
+              "type": "integer",
+              "minimum": 1000,
+              "default": 100000
+            },
+            "max_cost_usd": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0.50
+            }
+          }
+        },
+        "context": {
+          "type": "object",
+          "description": "Project context injection settings. Controls what project files are provided to agents for context-aware analysis.",
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "type": "string",
+              "description": "Context detail level. none: no context (backward compatible). minimal: CLAUDE.md only. standard: rules + coding standards + agent-specific docs. full: everything including INTENT.md, FIXME.md.",
+              "enum": ["none", "minimal", "standard", "full"],
+              "default": "standard"
+            },
+            "extra_files": {
+              "type": "array",
+              "description": "Additional files to include as context, relative to project root.",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "default": []
+            },
+            "max_chars_per_agent": {
+              "type": "integer",
+              "description": "Maximum context characters per agent. Controls token budget for context injection.",
+              "minimum": 500,
+              "maximum": 8000,
+              "default": 4000
+            }
+          }
+        }
+      }
+    },
+    "escape_hatch_config": {
+      "type": "object",
+      "description": "Emergency bypass configuration. Allows skipping gates under strict conditions.",
+      "additionalProperties": false,
+      "properties": {
+        "emergency_approvers": {
+          "type": "integer",
+          "description": "Minimum number of human approvers required for emergency bypass.",
+          "minimum": 1,
+          "default": 1
+        },
+        "post_eval_deadline_hours": {
+          "type": "number",
+          "description": "Hours after emergency bypass within which a full post-evaluation must be completed.",
+          "minimum": 1,
+          "default": 24
+        },
+        "max_consecutive_bypasses": {
+          "type": "integer",
+          "description": "Maximum consecutive emergency bypasses before mandatory full review.",
+          "minimum": 1,
+          "default": 3
+        }
+      }
+    },
+    "observability_config": {
+      "type": "object",
+      "description": "Observability and monitoring settings for governance metrics.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable governance observability dashboard and metrics collection.",
+          "default": true
+        },
+        "drift_detection": {
+          "type": "boolean",
+          "description": "Detect when AI-generated code drifts from established patterns.",
+          "default": true
+        },
+        "feedback_loop": {
+          "type": "boolean",
+          "description": "Enable feedback loop to improve confidence scores over time.",
+          "default": true
+        }
+      }
+    }
+  }
+}

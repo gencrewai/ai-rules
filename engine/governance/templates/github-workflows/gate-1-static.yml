@@ -1,0 +1,237 @@
+# =============================================================================
+# Gate 1: Static Analysis Workflow
+# =============================================================================
+# GitHub Actions workflow for static analysis of AI-generated code.
+# Automatically runs on pre-push or PR creation.
+#
+# Included checks:
+#   1. TypeScript type check (tsc --noEmit)
+#   2. ESLint linting
+#   3. Import path verification (custom script)
+#   4. npm audit security scan
+#
+# PR is blocked if any check fails.
+# =============================================================================
+
+name: "Gate 1: Static Analysis"
+
+# -----------------------------------------------------------------------------
+# Trigger conditions
+# -----------------------------------------------------------------------------
+on:
+  # Run on PR create/update
+  pull_request:
+    branches:
+      - main
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  # Manual run support
+  workflow_dispatch:
+    inputs:
+      skip_audit:
+        description: "Skip npm audit (for emergency deployments)"
+        required: false
+        default: "false"
+        type: boolean
+
+# -----------------------------------------------------------------------------
+# Concurrency control
+# -----------------------------------------------------------------------------
+# Cancel previous run and start new if running for same PR
+concurrency:
+  group: gate-1-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# -----------------------------------------------------------------------------
+# Permission settings
+# -----------------------------------------------------------------------------
+permissions:
+  contents: read
+  pull-requests: write        # Write check result comments on PR
+
+# =============================================================================
+# Jobs
+# =============================================================================
+jobs:
+  # ---------------------------------------------------------------------------
+  # TypeScript type check
+  # ---------------------------------------------------------------------------
+  typecheck:
+    name: "TypeScript Type Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # tsc --noEmit: type check only, no JS file generation
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+  # ---------------------------------------------------------------------------
+  # ESLint linting
+  # ---------------------------------------------------------------------------
+  lint:
+    name: "ESLint"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run ESLint — allow warnings, block only on errors
+      - name: Run ESLint
+        run: npx eslint . --max-warnings=0
+
+  # ---------------------------------------------------------------------------
+  # Import path verification
+  # ---------------------------------------------------------------------------
+  import-validation:
+    name: "Import Path Validation"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run custom import verification script
+      # Verification items:
+      #   - Whether absolute paths (aliases) are used instead of relative paths
+      #   - Circular dependency detection
+      #   - Layer violation detection (e.g., component → service direct import)
+      - name: Validate import paths
+        run: |
+          if [ -f "scripts/validate-imports.js" ]; then
+            node scripts/validate-imports.js
+          elif [ -f "scripts/validate-imports.ts" ]; then
+            npx tsx scripts/validate-imports.ts
+          else
+            echo "::warning::Import validation script not found. Skipping."
+            echo "Create scripts/validate-imports.js to enable import path validation."
+          fi
+
+  # ---------------------------------------------------------------------------
+  # npm security audit
+  # ---------------------------------------------------------------------------
+  security-audit:
+    name: "npm Security Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Skip if skip_audit=true on manual run
+    if: ${{ github.event.inputs.skip_audit != 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Block only moderate+ vulnerabilities
+      # Show only warnings for low vulnerabilities
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+
+  # ---------------------------------------------------------------------------
+  # Gate 1 result summary
+  # ---------------------------------------------------------------------------
+  gate-1-result:
+    name: "Gate 1 Result"
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - typecheck
+      - lint
+      - import-validation
+      - security-audit
+    timeout-minutes: 2
+
+    steps:
+      # Synthesize all check results for final judgment
+      - name: Evaluate gate result
+        run: |
+          echo "## Gate 1: Static Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          FAILED=false
+
+          # TypeScript type check
+          if [ "${{ needs.typecheck.result }}" == "success" ]; then
+            echo "- :white_check_mark: TypeScript Type Check — PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- :x: TypeScript Type Check — FAILED" >> $GITHUB_STEP_SUMMARY
+            FAILED=true
+          fi
+
+          # ESLint
+          if [ "${{ needs.lint.result }}" == "success" ]; then
+            echo "- :white_check_mark: ESLint — PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- :x: ESLint — FAILED" >> $GITHUB_STEP_SUMMARY
+            FAILED=true
+          fi
+
+          # Import verification
+          if [ "${{ needs.import-validation.result }}" == "success" ]; then
+            echo "- :white_check_mark: Import Path Validation — PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- :x: Import Path Validation — FAILED" >> $GITHUB_STEP_SUMMARY
+            FAILED=true
+          fi
+
+          # npm audit
+          if [ "${{ needs.security-audit.result }}" == "success" ] || [ "${{ needs.security-audit.result }}" == "skipped" ]; then
+            echo "- :white_check_mark: npm Security Audit — PASSED (or skipped)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- :x: npm Security Audit — FAILED" >> $GITHUB_STEP_SUMMARY
+            FAILED=true
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$FAILED" == "true" ]; then
+            echo ":no_entry: **Gate 1 FAILED** — PR is blocked until all checks pass." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo ":rocket: **Gate 1 PASSED** — All static analysis checks passed." >> $GITHUB_STEP_SUMMARY
+          fi

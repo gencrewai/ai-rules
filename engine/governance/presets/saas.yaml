@@ -1,0 +1,67 @@
+# =============================================================================
+# saas.yaml — SaaS project preset (includes auth/payment/multi-tenancy)
+# =============================================================================
+# Target: SaaS services with production deployments
+# Monthly cost target: ~$50-150 ($0.50~2.00 per PR)
+# Core strategy: Full 3-round cross-verification, enhanced Judge for security changes
+# =============================================================================
+
+version: "1.0"
+preset: saas
+release_mode: NORMAL
+
+gates:
+  gate_1:
+    enabled: true
+    checks:
+      - "tsc --noEmit"
+      - "eslint ."
+      - "cd backend && ruff check ."
+    required: true
+
+  gate_2:
+    enabled: true
+    golden_set_path: ".ai-governance/golden-set/"
+    thresholds_file: ".ai-governance/thresholds.yaml"
+
+  gate_3:
+    enabled: true
+    mode: auto         # Risk-based auto execution (always runs for auth/payment/DB changes)
+    sampling_rate: 0.5
+
+cross_verification:
+  enabled: true
+  rounds: 3
+
+  # Provider-Agnostic: just modify these two blocks to swap models
+  verifiers:
+    - id: claude-worker
+      provider: anthropic
+      model: claude-sonnet-4-6
+      agents: [structure, convention, domain]
+
+  judge:
+    provider: openai
+    model: gpt-4o
+    fallback_provider: anthropic
+    fallback_model: claude-opus-4-6
+    safe_model: gpt-4o              # Same in SAFE mode (can switch to o1 if needed)
+
+  agents_file: ".ai-governance/agents.yaml"
+
+  budget:
+    max_cost_usd: 2.00              # Max cost per PR
+
+  context:
+    level: standard                 # none | minimal | standard | full
+    max_chars_per_agent: 6000
+
+escape_hatch:
+  emergency_approvers: 1
+  post_eval_deadline_hours: 24
+  max_consecutive_bypasses: 2       # SaaS reduces max consecutive bypass count
+
+observability:
+  enabled: true
+  drift_detection: true
+  feedback_loop: true

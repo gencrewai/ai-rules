@@ -1,0 +1,77 @@
+# =============================================================================
+# small-team.yaml — 2-10 person team MVG (Minimum Viable Governance) preset
+# =============================================================================
+# Based on v2.1 section 8.2
+# Monthly cost target: ~$50-200
+# Core strategy: Gate 1+2 enabled, peer review for medium+ risk, weekly tracking
+# =============================================================================
+
+version: "1.0"
+preset: small-team
+release_mode: NORMAL
+
+# -----------------------------------------------------------------------------
+# Gate 1: Static Analysis — enabled
+# ESLint + type check + security audit
+# Cost: $0 (local tools only)
+# -----------------------------------------------------------------------------
+gates:
+  gate_1:
+    enabled: true
+    checks:
+      - "tsc --noEmit"
+      - "eslint ."
+      - "npm audit --audit-level=moderate"
+    required: true
+
+  # ---------------------------------------------------------------------------
+  # Gate 2: Confidence Score — enabled
+  # Golden set-based AI code confidence evaluation
+  # Cost: ~$30-100/mo (AI API calls)
+  # ---------------------------------------------------------------------------
+  gate_2:
+    enabled: true
+    golden_set_path: ".ai-governance/golden-set/"
+    thresholds_file: ".ai-governance/thresholds.yaml"
+
+  # ---------------------------------------------------------------------------
+  # Gate 3: Cross-Verification — enabled (peer review for medium+ risk)
+  # HIGH-RISK: mandatory peer review
+  # MEDIUM-RISK: peer review recommended (auto mode decides)
+  # LOW-RISK: auto-approve if Gate 1+2 pass
+  # ---------------------------------------------------------------------------
+  gate_3:
+    enabled: true
+    mode: auto
+    sampling_rate: 0.3
+
+# -----------------------------------------------------------------------------
+# Cross-Verification — enabled only for Medium+ complexity
+# Cross-verification runs only for Medium+ complexity changes
+# Skipped for simple changes (S/XS) to avoid overhead
+# Cost: ~$20-80/mo (cross-verification AI calls)
+# -----------------------------------------------------------------------------
+cross_verification:
+  enabled: true
+  rounds: 1
+  agents_file: ".ai-governance/agents.yaml"
+
+# -----------------------------------------------------------------------------
+# Escape Hatch — team settings
+# 2+ approvals needed, post-eval within 24 hours
+# -----------------------------------------------------------------------------
+escape_hatch:
+  emergency_approvers: 2
+  post_eval_deadline_hours: 24
+  max_consecutive_bypasses: 2
+
+# -----------------------------------------------------------------------------
+# Observability — weekly tracking only
+# Collect weekly metrics reports instead of full dashboard
+# Pattern drift detection enabled
+# Feedback loop disabled (insufficient data for team size)
+# -----------------------------------------------------------------------------
+observability:
+  enabled: true
+  drift_detection: true
+  feedback_loop: false

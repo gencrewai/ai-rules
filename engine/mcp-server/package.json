@@ -1,0 +1,10 @@
+{
+  "name": "ai-rules-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server for ai-rules — project scaffolding & rule management",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "zod": "^3.24.0"
+  }
+}

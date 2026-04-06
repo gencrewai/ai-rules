@@ -1,0 +1,331 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-governance.dev/schemas/eval-report.schema.json",
+  "title": "Cross-Verification Eval Report",
+  "description": "Multi-agent cross-verification result report",
+  "type": "object",
+  "required": ["version", "timestamp", "verdict", "rounds", "confidence", "models", "durationMs"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1.0"],
+      "description": "Report schema version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Verification completion time (ISO 8601)"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "CONDITIONAL"],
+      "description": "Final verdict"
+    },
+    "verdictReason": {
+      "type": "string",
+      "description": "Verdict reason"
+    },
+    "conditions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of conditions to fulfill for CONDITIONAL verdict"
+    },
+    "rounds": {
+      "type": "object",
+      "required": ["round1"],
+      "additionalProperties": false,
+      "properties": {
+        "round1": { "$ref": "#/definitions/round1_result" },
+        "round2": { "$ref": "#/definitions/round2_result" },
+        "round3": { "$ref": "#/definitions/round3_result" }
+      }
+    },
+    "confidence": { "$ref": "#/definitions/confidence_result" },
+    "deadlocks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/deadlock" }
+    },
+    "models": {
+      "type": "object",
+      "required": ["worker", "leader"],
+      "additionalProperties": false,
+      "properties": {
+        "worker": { "type": "string", "description": "Worker model ID" },
+        "leader": { "type": "string", "description": "Leader model ID" }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "totalTokens": { "type": "integer", "minimum": 0 },
+        "estimatedCostUsd": { "type": "number", "minimum": 0 }
+      }
+    },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total verification duration (ms)"
+    }
+  },
+
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "required": ["id", "severity", "category", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}-\\d{3}$",
+          "description": "Unique ID (e.g., STR-001, CON-002, DOM-003)"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "warning", "info"]
+        },
+        "category": {
+          "type": "string",
+          "description": "One of focus_area values"
+        },
+        "file": {
+          "type": "string",
+          "description": "Related file path"
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "description": "Related line number"
+        },
+        "description": {
+          "type": "string",
+          "description": "Finding description"
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "Suggested fix"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Agent self-confidence (0-100)"
+        }
+      }
+    },
+
+    "round1_agent_result": {
+      "type": "object",
+      "required": ["agentId", "findings"],
+      "additionalProperties": false,
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "enum": ["structure", "convention", "domain"]
+        },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/finding" }
+        },
+        "usage": { "$ref": "#/definitions/usage" },
+        "latencyMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "round1_result": {
+      "type": "object",
+      "required": ["agents"],
+      "additionalProperties": false,
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/round1_agent_result" },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      }
+    },
+
+    "agreement": {
+      "type": "object",
+      "required": ["findingId", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "findingId": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+
+    "disagreement": {
+      "type": "object",
+      "required": ["findingId", "reason", "suggestion"],
+      "additionalProperties": false,
+      "properties": {
+        "findingId": { "type": "string" },
+        "reason": { "type": "string" },
+        "suggestion": {
+          "type": "string",
+          "enum": ["retract", "modify", "maintain"]
+        }
+      }
+    },
+
+    "round2_agent_result": {
+      "type": "object",
+      "required": ["agentId", "agreements", "disagreements"],
+      "additionalProperties": false,
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "enum": ["structure", "convention", "domain"]
+        },
+        "agreements": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/agreement" }
+        },
+        "disagreements": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/disagreement" }
+        },
+        "newFindings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/finding" }
+        },
+        "usage": { "$ref": "#/definitions/usage" },
+        "latencyMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "round2_result": {
+      "type": "object",
+      "required": ["agents"],
+      "additionalProperties": false,
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/round2_agent_result" },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      }
+    },
+
+    "final_finding": {
+      "type": "object",
+      "required": ["id", "severity", "description", "agentAgreement"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "warning", "info"]
+        },
+        "description": { "type": "string" },
+        "resolution": { "type": "string" },
+        "agentAgreement": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Number of agreeing agents"
+        },
+        "leaderOverride": {
+          "type": "boolean",
+          "description": "Whether Leader made a different judgment from agents"
+        }
+      }
+    },
+
+    "domain_confidence": {
+      "type": "object",
+      "required": ["domain", "score", "threshold", "passes"],
+      "additionalProperties": false,
+      "properties": {
+        "domain": { "type": "string" },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 100 },
+        "passes": { "type": "boolean" },
+        "delta": { "type": "number" }
+      }
+    },
+
+    "round3_result": {
+      "type": "object",
+      "required": ["verdict", "findings", "leaderModel"],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "CONDITIONAL"]
+        },
+        "verdictReason": { "type": "string" },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/final_finding" }
+        },
+        "domainConfidence": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/domain_confidence" }
+        },
+        "conditions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "leaderModel": { "type": "string" },
+        "usage": { "$ref": "#/definitions/usage" },
+        "latencyMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "confidence_result": {
+      "type": "object",
+      "required": ["overall", "passesThreshold"],
+      "additionalProperties": false,
+      "properties": {
+        "domains": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/domain_confidence" }
+        },
+        "overall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "passesThreshold": { "type": "boolean" }
+      }
+    },
+
+    "deadlock": {
+      "type": "object",
+      "required": ["area", "findingIds", "resolution"],
+      "additionalProperties": false,
+      "properties": {
+        "area": { "type": "string" },
+        "findingIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "agentPositions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "confidenceSpread": { "type": "number" },
+        "resolution": {
+          "type": "string",
+          "enum": ["auto_resolve", "escalate"]
+        },
+        "escalationReason": { "type": "string" },
+        "tempZoneUpgrade": { "type": "string" }
+      }
+    },
+
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 },
+        "totalTokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

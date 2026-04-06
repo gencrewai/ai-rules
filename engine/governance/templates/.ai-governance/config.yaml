@@ -1,0 +1,117 @@
+# =============================================================================
+# AI Governance Configuration
+# =============================================================================
+# This is the central configuration file for AI code governance.
+# Place at .ai-governance/config.yaml in your project root.
+#
+# Schema: schemas/governance-config.schema.json
+# Docs: docs/configuration.md
+# =============================================================================
+
+# Config schema version
+version: "1.0"
+
+# -----------------------------------------------------------------------------
+# Team size preset
+# -----------------------------------------------------------------------------
+# solo        — Solo dev. Gate 1 only, cross-verification disabled.
+# small-team  — 2~5 persons. Gate 1+2 enabled, cross-verification sampling.
+# medium-team — 6~15 persons. All gates enabled, cross-verification auto.
+# large-team  — 16+ persons. All gates enabled, cross-verification always, 2 rounds.
+preset: solo
+
+# -----------------------------------------------------------------------------
+# Release mode
+# -----------------------------------------------------------------------------
+# NORMAL    — Standard release flow. All gates operate at default thresholds.
+# SAFE      — Strict mode. Thresholds raised + cross-verification required.
+# EMERGENCY — Emergency deploy. Minimal gates + post-eval required.
+release_mode: NORMAL
+
+# =============================================================================
+# Gates — Release quality checkpoints
+# =============================================================================
+gates:
+  # ---------------------------------------------------------------------------
+  # Gate 1: Static Analysis
+  # ---------------------------------------------------------------------------
+  # Static analysis checks auto-run before push or PR creation.
+  # Includes type check, linting, security audit, etc.
+  gate_1:
+    enabled: true
+    checks:
+      - "tsc --noEmit"          # TypeScript type check
+      - "eslint ."              # ESLint linting
+      # - "npm audit --audit-level=moderate"  # npm security audit (enable if needed)
+    required: true              # true: block release on failure
+
+  # ---------------------------------------------------------------------------
+  # Gate 2: Confidence Score
+  # ---------------------------------------------------------------------------
+  # Evaluates per-domain confidence scores for AI-generated code.
+  # Identifies code below thresholds compared to the golden set.
+  gate_2:
+    enabled: false              # Disabled in solo preset
+    golden_set_path: ".ai-governance/golden-set/"
+    thresholds_file: ".ai-governance/thresholds.yaml"
+
+  # ---------------------------------------------------------------------------
+  # Gate 3: Cross-Verification
+  # ---------------------------------------------------------------------------
+  # Multiple AI agents independently review the code.
+  # Multi-angle verification from structure, convention, and domain perspectives.
+  gate_3:
+    enabled: false              # Disabled in solo preset
+    mode: auto                  # always: always | sampling: probabilistic | auto: risk-based
+    sampling_rate: 0.3          # Execution probability in sampling mode (0.0 ~ 1.0)
+
+# =============================================================================
+# Cross-Verification — detailed settings
+# =============================================================================
+# Provider-Agnostic design: just modify verifiers[] + judge blocks to swap models.
+# Freely switch between Anthropic → OpenAI → Google without code changes.
+cross_verification:
+  enabled: false                # Cross-verification system enabled
+  rounds: 3                    # Verification rounds (1~3). Higher = more reliable, slower.
+  agents_file: ".ai-governance/agents.yaml"  # Agent definition file path
+
+  # ---------------------------------------------------------------------------
+  # Verifiers — Round 1/2 analysis agents (independent verification)
+  # ---------------------------------------------------------------------------
+  # Multiple verifiers can be defined. Each verifier analyzes its assigned agent set with an independent LLM.
+  # Single verifier = same as existing behavior.
+  verifiers:
+    - id: claude-worker
+      provider: anthropic           # anthropic | openai | google
+      model: claude-sonnet-4-6      # Just modify this line to swap
+      agents: [structure, convention, domain]
+
+  # ---------------------------------------------------------------------------
+  # Judge — Round 3 final judgment (cross-model independence with different model)
+  # ---------------------------------------------------------------------------
+  # Must use different provider from verifiers for cross-model blind spot defense.
+  judge:
+    provider: openai              # Different provider from verifiers recommended
+    model: gpt-4o
+    fallback_provider: anthropic  # Auto-fallback when OPENAI_API_KEY is not set
+    fallback_model: claude-opus-4-6
+    safe_model: gpt-4o            # Used in release_mode: SAFE (can specify a more powerful model)
+
+# =============================================================================
+# Escape Hatch — emergency bypass
+# =============================================================================
+# Conditions for emergency deployment bypassing gates.
+# Strict limits applied to prevent abuse.
+escape_hatch:
+  emergency_approvers: 1        # Minimum approvers needed for emergency bypass
+  post_eval_deadline_hours: 24  # Post-bypass evaluation deadline (hours)
+  max_consecutive_bypasses: 3   # Max consecutive bypasses. Full review forced when exceeded.
+
+# =============================================================================
+# Observability
+# =============================================================================
+# Governance metrics collection and monitoring settings.
+observability:
+  enabled: true                 # Enable metrics collection
+  drift_detection: true         # Detect pattern drift in AI-generated code
+  feedback_loop: true           # Feedback loop for confidence score improvement

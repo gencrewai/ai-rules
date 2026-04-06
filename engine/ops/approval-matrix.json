@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "description": "Common approval policy for multi-project agent operations.",
+  "levels": {
+    "P0": {
+      "label": "auto",
+      "summary": "Read-only analysis, reporting, and safe local verification."
+    },
+    "P1": {
+      "label": "scope_auto",
+      "summary": "Low-risk edits inside a pre-approved scope, with post-run reporting."
+    },
+    "P2": {
+      "label": "batch_approved",
+      "summary": "Branch, ticket, or sprint batch previously approved by a human."
+    },
+    "P3": {
+      "label": "explicit_approval",
+      "summary": "Human approval required before execution."
+    }
+  },
+  "defaults": {
+    "observe": "P0",
+    "execute_local_check": "P0",
+    "docs_edit": "P1",
+    "test_edit": "P1",
+    "small_code_fix": "P1",
+    "feature_batch": "P2",
+    "dependency_change": "P3",
+    "api_breaking_change": "P3",
+    "auth_change": "P3",
+    "payment_change": "P3",
+    "db_change": "P3",
+    "ci_cd_change": "P3",
+    "push_pr_deploy": "P3",
+    "external_side_effect": "P3"
+  },
+  "rules": [
+    {
+      "id": "observe-report",
+      "match": {
+        "kind": [
+          "observe",
+          "report"
+        ]
+      },
+      "approval": "P0"
+    },
+    {
+      "id": "safe-scope-docs-tests",
+      "match": {
+        "kind": [
+          "edit"
+        ],
+        "paths": [
+          "docs/**",
+          "tests/**",
+          "WORKLOG/**",
+          "SESSION.md"
+        ],
+        "risk": "low",
+        "reversibility": "R0"
+      },
+      "approval": "P1"
+    },
+    {
+      "id": "approved-branch-batch",
+      "match": {
+        "kind": [
+          "edit",
+          "execute"
+        ],
+        "scope": "approved_branch_or_ticket"
+      },
+      "approval": "P2"
+    },
+    {
+      "id": "always-explicit-critical",
+      "match": {
+        "kind": [
+          "ship",
+          "deploy"
+        ],
+        "risk": "critical"
+      },
+      "approval": "P3"
+    }
+  ],
+  "critical_categories": [
+    "auth",
+    "payment",
+    "db",
+    "deploy",
+    "permission",
+    "external_side_effect"
+  ],
+  "notes": [
+    "This matrix does not replace core rules. Security, git, and workflow rules still take precedence.",
+    "P1 is valid only inside a scope already approved by a human or higher-level plan.",
+    "Project-specific exceptions belong in ops/approval-overrides/*.json."
+  ]
+}

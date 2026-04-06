@@ -1,0 +1,24 @@
+# AI Coding Rules — My SaaS App
+
+## Git
+- Branch: feature/{YYMMDD}-{description}
+- Commit: {type}({scope}): {description}
+- Never commit to main/master/develop
+- Never: rebase, force push, auto-resolve conflicts
+
+## Code Architecture
+- Frontend: hooks + React Query pattern (no direct fetch)
+- Backend: Controller → Service → Repository
+- No hardcoded secrets, no PII in logs
+- No eslint-disable, no @ts-ignore
+
+## Security
+- R0 (auto): local, narrow, reversible
+- R1 (ask): reversible but costly
+- R2 (block): data loss, external state change
+- STRIDE check on new features
+
+## Workflow
+- Plan Mode for: bug fixes, features, API changes
+- Auto-execute: reads, searches, lint, tests
+- Agent order: planner → builder → reviewer

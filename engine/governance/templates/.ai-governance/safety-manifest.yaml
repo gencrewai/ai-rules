@@ -1,0 +1,119 @@
+# =============================================================================
+# .ai-governance/safety-manifest.yaml
+# =============================================================================
+# Runtime safety manifest — guard-reversibility.sh reads this file to operate.
+#
+# Structure:
+#   version              — Schema version
+#   protected_branches   — Branches where direct commit/push is forbidden
+#   confirm_phrase_format — R2 confirmation phrase format
+#   high_risk_actions    — Pattern + reversibility tier + approval method
+#   never_override       — Absolutely forbidden (agent execution impossible in any situation)
+#
+# approval value → hook behavior:
+#   block   — Unconditional block, must be executed manually (R2 + external impact)
+#   confirm — Block + requires CONFIRM {action}-{YYYYMMDD} phrase re-entry (R2)
+#   warn    — Block + warning output (R1)
+#
+# Per-project customization:
+#   Add custom patterns in governance.safety.extra_actions of your profile.yaml
+#   → governance adapter appends to this file and deploys
+# =============================================================================
+
+version: "1.0"
+
+confirm_phrase_format: "CONFIRM {action}-{YYYYMMDD}"
+
+protected_branches:
+  - main
+  - master
+  - develop
+
+# ── Absolutely forbidden (never_override) ────────────────────────────────────────────────
+# Commands that agents cannot execute. Blocked even if user requests.
+never_override:
+  - id: force-push-protected
+    description: Force push to protected branches
+    pattern: 'git\s+push\b.*(--force|-f)\b.*\b(main|master|develop)\b'
+    message: "Force push to protected branches (main/master/develop) — absolutely forbidden per 01-git rules"
+
+  - id: drop-database
+    description: Full DB deletion
+    pattern: 'DROP\s+DATABASE\b'
+    message: "DROP DATABASE — Full DB deletion, agent execution absolutely forbidden"
+
+  - id: cross-push
+    description: Cross push between branches
+    pattern: 'git\s+push\s+\S+\s+\S+:\S+'
+    message: "cross-push (A:B format) — absolutely forbidden per 01-git rules"
+
+# ── High-risk actions (high_risk_actions) ──────────────────────────────────────────
+# reversibility: R0(fully reversible) / R1(limited reversible) / R2(irreversible)
+# approval: block / confirm / warn
+high_risk_actions:
+
+  # DB destructive commands
+  - id: prisma-migrate-reset
+    pattern: 'prisma\s+migrate\s+reset'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: migrate-reset
+    message: "prisma migrate reset — full DB reset (all data lost)"
+    alternative: "Use prisma migrate deploy instead (data preserved)"
+
+  - id: prisma-db-force-reset
+    pattern: 'prisma\s+db\s+push.*--force-reset'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: db-force-reset
+    message: "prisma db push --force-reset — forced DB schema reset"
+    alternative: "Use prisma migrate deploy instead"
+
+  - id: delete-without-where
+    # Special handling: DELETE FROM + no WHERE combination (separate logic in hook script)
+    pattern: 'DELETE\s+FROM\b'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: delete-all-rows
+    message: "DELETE FROM without WHERE — deletes all table rows"
+    alternative: "Always specify a WHERE condition"
+
+  - id: truncate-table
+    pattern: '(^|\s)TRUNCATE\s+'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: truncate-table
+    message: "TRUNCATE — deletes all data in table"
+    alternative: "Use DELETE FROM {table} WHERE {condition} instead"
+
+  - id: drop-table
+    pattern: 'DROP\s+TABLE\b'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: drop-table
+    message: "DROP TABLE — permanently deletes table schema + data"
+    alternative: "Add changes via a new migration file"
+
+  - id: alembic-downgrade
+    pattern: 'alembic\s+downgrade'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: alembic-downgrade
+    message: "alembic downgrade — migration rollback (may delete columns/tables)"
+    alternative: "Use alembic upgrade head to keep up to date"
+
+  # Git dangerous commands
+  - id: force-push
+    pattern: 'git\s+push\b.*(--force\b|-f\b)'
+    reversibility: R2
+    approval: confirm
+    confirm_action_name: force-push
+    message: "git push --force — remote history destruction"
+    alternative: "Use the PR + merge approach instead"
+
+  # Filesystem risk
+  - id: rm-rf-root
+    pattern: 'rm\s+-[rRfF]{1,4}\s+(\/|~|\$HOME|\.\.)(\s|$)'
+    reversibility: R2
+    approval: block
+    message: "rm -rf on root-level path — deletes files at or above project root"
