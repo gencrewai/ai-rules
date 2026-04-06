@@ -119,10 +119,15 @@ ai-rules/
 
 ```bash
 # CLI — 한 줄이면 됩니다
-node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
+node engine/cli/scaffold.mjs --name my-app --dev-root /path/to/projects
+
+# 예시:
+#   --dev-root .                    # 현재 디렉토리
+#   --dev-root /home/user/projects  # Linux/macOS
+#   --dev-root D:\dev               # Windows
 
 # 또는 Claude Code MCP로 직접 실행
-# → scaffold_project(name: "my-app", dev_root: "~/projects")
+# → scaffold_project(name: "my-app", dev_root: "/path/to/projects")
 ```
 
 이 한 줄의 명령으로:

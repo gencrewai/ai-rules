@@ -119,10 +119,15 @@ ai-rules/
 
 ```bash
 # CLI — one line is all you need
-node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
+node engine/cli/scaffold.mjs --name my-app --dev-root /path/to/projects
+
+# Examples:
+#   --dev-root .                    # current directory
+#   --dev-root /home/user/projects  # Linux/macOS
+#   --dev-root D:\dev               # Windows
 
 # Or run directly via Claude Code MCP
-# → scaffold_project(name: "my-app", dev_root: "~/projects")
+# → scaffold_project(name: "my-app", dev_root: "/path/to/projects")
 ```
 
 This single command:

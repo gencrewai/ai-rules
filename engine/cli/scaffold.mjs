@@ -65,9 +65,9 @@ Path overrides (CLI args or env vars):
                           If omitted, uses built-in bootstrap (no external deps)
 
 Examples:
-  node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects
-  node engine/cli/scaffold.mjs --name my-app --dev-root . --stack next-none-none --no-git
-  node engine/cli/scaffold.mjs --name my-app --dev-root ~/projects --starter-kit-root ~/starter-kit
+  node engine/cli/scaffold.mjs --name my-app --dev-root .
+  node engine/cli/scaffold.mjs --name my-app --dev-root /home/user/projects
+  node engine/cli/scaffold.mjs --name my-app --dev-root D:\\dev --stack next-none-none --no-git
 `.trim())
   process.exit(args.help ? 0 : 1)
 }
