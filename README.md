@@ -4,6 +4,10 @@
 
 > Policy is what you say. Harness is what you enforce.
 
+<p align="center">
+  <img src="docs/images/ai-rules-overview.png" alt="ai-rules overview" width="700">
+</p>
+
 A **structured rules system** for AI coding agents.
 Combines text-based rules (advisory) with code-enforced guardrails (deterministic) to create a safe and consistent AI coding environment.
 
@@ -115,19 +119,18 @@ ai-rules/
 
 ## Quick Start
 
-### Option A: scaffold command (1 minute)
+### Option A: scaffold CLI (1 minute)
 
 ```bash
-# CLI — one line is all you need
-node engine/cli/scaffold.mjs --name my-app --dev-root /path/to/projects
+# 1. Clone ai-rules
+git clone https://github.com/gencrewai/ai-rules.git
+cd ai-rules
 
-# Examples:
-#   --dev-root .                    # current directory
-#   --dev-root /home/user/projects  # Linux/macOS
-#   --dev-root D:\dev               # Windows
+# 2. Scaffold a new project (creates ../my-app next to ai-rules/)
+node engine/cli/scaffold.mjs --name my-app
 
-# Or run directly via Claude Code MCP
-# → scaffold_project(name: "my-app", dev_root: "/path/to/projects")
+# Or specify a custom directory:
+node engine/cli/scaffold.mjs --name my-app --dev-root D:\dev
 ```
 
 This single command:
@@ -139,7 +142,45 @@ This single command:
 
 Zero external dependencies — uses only Node.js built-in modules. No npm install required.
 
-### Option B: Copy-paste rules only (5 minutes)
+Available stacks: `react-fastapi-postgres` (default), `next-fastapi-postgres`, `react-express-postgres`, `react-express-mongodb`, `next-none-none`
+
+```bash
+# Example with a different stack:
+node engine/cli/scaffold.mjs --name my-app --stack next-none-none --no-git
+```
+
+### Option B: Claude Code MCP (interactive)
+
+Register ai-rules as an MCP server and use `scaffold_project` directly from Claude Code.
+
+**1. Install MCP dependencies:**
+
+```bash
+cd ai-rules
+npm install
+```
+
+**2. Add to your Claude Code MCP settings** (`.claude/settings.json` or global config):
+
+```json
+{
+  "mcpServers": {
+    "ai-rules": {
+      "command": "node",
+      "args": ["/absolute/path/to/ai-rules/engine/mcp-server/index.mjs"]
+    }
+  }
+}
+```
+
+**3. Use in Claude Code:**
+
+```
+"Create a new project called my-app"
+→ scaffold_project(name: "my-app", dev_root: "/path/to/projects")
+```
+
+### Option C: Copy-paste rules only (5 minutes)
 
 If you want to quickly apply the core rules without any tooling:
 
@@ -153,12 +194,12 @@ cp core/agents/*.md your-project/.claude/agents/
 
 → [core/README.md](core/README.md)
 
-### Option C: sync engine (multi-project)
+### Option D: sync engine (multi-project)
 
 If you want to deploy the same rules across multiple projects:
 
 ```bash
-cd engine
+cd ai-rules
 npm install
 npm run new -- my-project      # Create a profile
 npm run sync                   # Generate rules (dry-run)
