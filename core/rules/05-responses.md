@@ -70,11 +70,13 @@ Full repository scanning is forbidden — only read files referenced from CLAUDE
 
 **Exception — Missing Navigation Anchors (New/Early-Stage Projects)**
 
-A limited one-time scan is allowed at session start if any of the following apply:
+A limited one-time scan is allowed at session start **only when ALL** of the following apply (matches 06-session Step 0 — Discovery Anchor Check):
 
-- `docs/00_INDEX.md` does not exist
-- `INTENT.md` does not exist
+- `docs/00_INDEX.md` does not exist, AND
+- `INTENT.md` does not exist, AND
 - `docs/` directory does not exist
+
+If any single anchor exists, the project is treated as mature and the scan exception does NOT apply. This avoids false positives where an established project simply hasn't created an index file yet.
 
 Allowed scan scope:
 1. `*.html` files at project root (excluding node_modules, dist, build, index.html)

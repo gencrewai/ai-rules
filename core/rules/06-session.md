@@ -4,14 +4,16 @@
 
 ### Step 0 — Discovery Anchor Check
 
-If any of the following conditions are met, classify as a **new/early-stage project** and run the Bootstrap procedure:
+Classify as a **new/early-stage project** only when **ALL** of the following are true. If any single anchor exists, treat the project as mature and skip Bootstrap.
 
-| Condition | Result |
-|-----------|--------|
-| `docs/00_INDEX.md` missing | New/early-stage project |
-| `INTENT.md` missing | New/early-stage project |
-| `docs/` directory missing | New/early-stage project |
-| All present | Mature project — proceed directly to Steps 1–5 |
+| Condition | Required for Bootstrap |
+|-----------|------------------------|
+| `docs/00_INDEX.md` is missing | AND |
+| `INTENT.md` is missing | AND |
+| `docs/` directory is missing | AND |
+| Any one of the above present | → Mature project, proceed directly to Steps 1–5 |
+
+Rationale: a mature project that simply hasn't created `00_INDEX.md` yet should not trigger a full repo scan. Requiring all three anchors to be missing avoids false positives where the project clearly already has working artifacts (e.g. an existing `docs/` tree but no index file).
 
 **Bootstrap Procedure** (new/early-stage projects only):
 
