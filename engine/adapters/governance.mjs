@@ -121,6 +121,17 @@ export function generate(governanceConfig, profile) {
     })
   }
 
+  // 5e. hooks/guard-scope.sh — PreToolUse(Edit|Write) out-of-scope edit guard
+  // Implements 05-responses Out-of-Scope Edit Disclosure triggers A & B.
+  const guardScopePath = resolve(HOOKS_TEMPLATES_DIR, 'guard-scope.sh')
+  if (existsSync(guardScopePath)) {
+    files.push({
+      path: '.claude/hooks/guard-scope.sh',
+      content: readFileSync(guardScopePath, 'utf-8'),
+      executable: true,
+    })
+  }
+
   // 5c. .claude/.gitignore — exclude confirmed-actions directory
   files.push({
     path: '.claude/.gitignore',
@@ -348,6 +359,15 @@ function buildSettingsJson(governanceConfig) {
             {
               type: 'command',
               command: 'bash .claude/hooks/guard-reversibility.sh',
+            },
+          ],
+        },
+        {
+          matcher: 'Edit|Write|NotebookEdit',
+          hooks: [
+            {
+              type: 'command',
+              command: 'bash .claude/hooks/guard-scope.sh',
             },
           ],
         },

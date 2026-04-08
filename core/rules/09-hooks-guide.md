@@ -36,6 +36,7 @@ Core guardrails that can be bypassed under context pressure if only advisory:
 | No git push --force | `guard-push-force.sh` | **tooling** | `push --force` or `push -f` pattern | Block |
 | Block migrate reset / DB DROP | `guard-destructive-db.sh` | **tooling** | `migrate reset`, `db push --force-reset`, `DROP DATABASE/TABLE`, `TRUNCATE` | Block + manual procedure guidance |
 | R2 reversibility comprehensive block | `guard-reversibility.sh` | governance | Above patterns + additional R2 commands | Block (safety-manifest based) |
+| Out-of-scope edit confirmation | `guard-scope.sh` | governance | `Edit`/`Write`/`NotebookEdit` targeting paths outside cwd, OR shared infra (`core/`, `tools/`, `adapters/`, `engine/`, `.github/`, root config files) | Block + ask for explicit user confirmation (per 05-responses Out-of-Scope Edit Disclosure triggers A/B). Bypass via `.claude/confirmed-actions/scope-confirmed`. |
 | Block agent-initiated `git stash` | `guard-stash.sh` | **tooling** | `git stash push`, `git stash save`, bare `git stash` | Block + suggest WIP commit (per 04-workflow Failure Protocol) |
 
 > **Channel design rationale**: `guard-push-force.sh` and `guard-destructive-db.sh` are distributed via the **tooling channel** so they apply even to projects with `governance.enabled: false`. `guard-branch.sh` and `guard-reversibility.sh` depend on safety-manifest.yaml and remain in the governance channel.
@@ -51,7 +52,6 @@ Effective additions depending on project needs:
 | Lint after .ts/.tsx edit | — | `PostToolUse` (`Edit`) | `.ts`, `.tsx` file modified | Auto-run `eslint {file}` |
 | .env modification warning | — | `PreToolUse` (`Edit`) | Attempt to modify `.env` file | Request user confirmation |
 | Cross-push block | — | `PreToolUse` (`Bash`) | `push origin {A}:{B}` (A≠B pattern) | Block |
-| Out-of-scope edit warning | `guard-scope.sh` | `PreToolUse` (`Edit`, `Write`) | Target path is outside cwd repo, OR matches `core/`, `tools/`, `adapters/`, root config | Request user confirmation (per 05-responses Out-of-Scope Edit Disclosure triggers A/B) |
 
 #### guard-freeze Usage
 
