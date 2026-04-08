@@ -6,15 +6,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/guard-branch.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-branch.sh\""
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/guard-secrets.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-secrets.sh\""
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/guard-reversibility.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-reversibility.sh\""
           }
         ]
       }
