@@ -29,7 +29,8 @@ COMMAND=$(printf '%s' "$INPUT" | node -e "
 let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
   try { const o=JSON.parse(d); console.log((o.tool_input||{}).command||''); }
   catch(e){ console.log(''); }
-})" 2>/dev/null) || COMMAND=""
+})" 2>/dev/null) || true
+COMMAND=${COMMAND:-""}
 
 [[ -z "$COMMAND" ]] && exit 0
 
