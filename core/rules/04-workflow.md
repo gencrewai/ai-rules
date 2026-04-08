@@ -13,7 +13,13 @@ The mode is recorded in `.claude/agent-mode`. If the file is absent, the default
 | `production` | auto | auto | →main | production | minimized |
 | `idle` | auto | auto | →develop | staging | forbidden |
 
-- If the project has no develop branch, create one automatically.
+- If the project has no develop branch, create one automatically using the **safe two-step form** (never the `A:B` push form, which 01-git classifies as cross-push):
+  ```bash
+  git fetch origin
+  git branch develop origin/main          # or origin/master
+  git push origin develop                 # creates remote develop from local ref
+  ```
+  Never use `git push origin origin/main:refs/heads/develop` — it bypasses cross-push detection.
 - main and master branches are treated identically.
 
 `staging`/`production` modes apply only to projects with server/deployment environments. Do not use for projects without servers (rule repos, docs, etc.).

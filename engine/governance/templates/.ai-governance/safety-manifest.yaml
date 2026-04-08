@@ -43,9 +43,13 @@ never_override:
     message: "DROP DATABASE — Full DB deletion, agent execution absolutely forbidden"
 
   - id: cross-push
-    description: Cross push between branches
+    description: Cross push between branches (A:B form where A ≠ B)
+    # Matches `git push <remote> <src>:<dst>`. New-branch creation should use the
+    # safe two-step form (`git branch <new>` + `git push origin <new>`) instead —
+    # the A:B form is forbidden even for creation because it bypasses this guard
+    # and is indistinguishable from a true cross-push at the pattern level.
     pattern: 'git\s+push\s+\S+\s+\S+:\S+'
-    message: "cross-push (A:B format) — absolutely forbidden per 01-git rules"
+    message: "cross-push (A:B form) — forbidden per 01-git. For new branches use two-step: git branch <new> && git push origin <new>"
 
 # ── High-risk actions (high_risk_actions) ──────────────────────────────────────────
 # reversibility: R0(fully reversible) / R1(limited reversible) / R2(irreversible)

@@ -5,7 +5,9 @@
 ❌ **Never allowed**: `rebase`, `merge` (except ff-only), `checkout --ours/--theirs`, automatic conflict resolution, `push -f/--force`
 
 ✅ **Allowed**: `status`/`log`/`diff`/`fetch`, create new branch (`checkout -b`), `add`/`commit`/`push origin {branch}`
-- Push must always go from **current branch → same-name remote** (`push origin feature/xxx`) — cross-push like `push origin feature/xxx:master` is strictly forbidden
+- Push must always go from **current branch → same-name remote** (`push origin feature/xxx`) — cross-push like `push origin feature/xxx:master` is strictly forbidden.
+- "Cross-push" means a push where source and destination ref names differ (`A:B` form, `A ≠ B`). The forbidden pattern is `git push <remote> <src>:<dst>` where `dst` already exists on the remote OR `dst` is a protected branch.
+- **Exception — new branch creation**: pushing a local ref to a *non-existent* remote ref is allowed only via the two-step form (`git branch <new>` then `git push origin <new>`). Never use the `A:B` form to create new branches (it bypasses the cross-push detection).
 
 **On conflict**: Immediately `--abort` and report to user — never auto-resolve
 
@@ -28,6 +30,7 @@ May be skipped for read-only/analysis/test-only tasks. For docs-only changes, ch
    - dirty → report to user and wait for instructions (agent must never stash/reset/checkout on its own)
    - mixed staged/unstaged → additional warning (hooks may lose staged versions during stash/pop)
 3. **Check behind count vs. base branch**: Apply the same criteria as "Pre-branch Work Check" below
+4. **Detect unexpected base branch movement**: Compare local `origin/main` (or `origin/master`) tip from the previous session against the freshly fetched tip. If the base branch advanced without a known PR merge from this agent, **stop and report** — do not proceed with push/PR until the user confirms the cause. Unexplained base movement may indicate force-push, mirror sync, or another actor; treating it as normal can mask data loss.
 
 If `git status` was already checked in 06-session Step 5, skip step 2.
 
