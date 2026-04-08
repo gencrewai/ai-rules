@@ -66,7 +66,7 @@ The agent MUST follow the disclosure protocol below if **any** of these apply:
 
 ## Repository Scan Prohibition
 
-Full repository scanning is forbidden — only read files referenced from CLAUDE.md / INTENT.md / docs index.
+Full repository scanning is forbidden — only read files referenced from CLAUDE.md, the project's docs index, or (if the project uses one) INTENT.md.
 
 **Exception — Missing Navigation Anchors (New/Early-Stage Projects)**
 
@@ -82,5 +82,4 @@ Allowed scan scope:
 1. `*.html` files at project root (excluding node_modules, dist, build, index.html)
 2. One level of directory structure under `docs/`, `ui-mockups/`, `mockups/`, `wireframes/`, `design/`
 
-After scanning, report discovered assets to the user and register them in `context.docs` if INTENT.md exists.
-Standard rules apply from that point forward.
+After scanning, report discovered assets to the user. If the project uses INTENT.md, register the paths in its `context.docs`. Standard rules apply from that point forward.

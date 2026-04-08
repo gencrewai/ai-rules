@@ -27,7 +27,7 @@
 ### Common (stack-neutral — applies to all projects)
 - Hardcoded secrets forbidden (API keys, passwords, etc.) — **guard-secrets.sh hook provides redundant detection at commit time** (`tooling.secret_scan`)
 - Never log PII (email, token, user_id) in production
-- Full repo scan forbidden — only read files referenced in CLAUDE.md / INTENT.md / docs index
+- Full repo scan forbidden — only read files referenced in CLAUDE.md, the docs index, or INTENT.md (if the project uses one)
 
 ## Architecture Principles
 

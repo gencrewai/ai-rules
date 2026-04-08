@@ -42,8 +42,8 @@ Define additional modes per project via extensions.
 
 | Gate | Transition | Required Deliverables | Skip Allowed |
 |------|------------|----------------------|-------------|
-| G1 | Plan → Design | INTENT.md + user approval | Yes, if urgent |
-| G2 | Design → Implement | DESIGN.md (for DB/API changes) + **INTENT scope re-check** | Yes, if urgent |
+| G1 | Plan → Design | Scope statement + user approval (write to INTENT.md **if** the project uses one) | Yes, if urgent |
+| G2 | Design → Implement | DESIGN.md (for DB/API changes) + **scope re-check against G1 statement** | Yes, if urgent |
 | G3 | Implement → Review | Type check + lint pass, commit completed | **Never** |
 | G4 | Review → Deploy | APPROVE + security PASS | - |
 
@@ -51,16 +51,16 @@ DESIGN.md location: `docs/design/{feature-name}/DESIGN.md`
 
 ### Drift Detection (Required at G2 Transition)
 
-Before moving from design to implementation, re-confirm that the work stays within the INTENT.md scope:
+Before moving from design to implementation, re-confirm that the work stays within the **G1 scope statement** (which lives in INTENT.md if the project uses one, otherwise in the conversation/plan):
 
 ```
 ✅ Verification items:
-  - Are all planned files/features within the scope defined in INTENT.md?
+  - Are all planned files/features within the agreed G1 scope?
   - Are newly added elements derived from the original intent?
 
 ❌ If scope creep is detected:
   → Stop immediately + report to user
-  → "Work outside INTENT.md scope has been detected: {details}
+  → "Work outside the agreed scope has been detected: {details}
      Should we expand the scope, or exclude and proceed?"
 ```
 
@@ -130,8 +130,7 @@ For background on approval intensity and risk classification, see `docs/guide/AI
 
 ### Context Exhaustion Prevention
 
-Conversation exceeding ~30 turns or response slowdown detected → snapshot to SESSION.md and request a new session.
-Delegate exploration tasks that read many files to the Task tool (Subagent) — receive only the results in the main context.
+Delegate exploration tasks that read many files to the Task tool (Subagent) — receive only the results in the main context. For session-end triggers and snapshot procedure, see 06-session "Context Limits".
 
 ## AGENTS.md Standard Compatibility
 
@@ -141,14 +140,9 @@ A universal standard jointly adopted by Anthropic/OpenAI/Google/GitHub since 202
 - Read order: `AGENTS.md` → `CLAUDE.md` → `.cursorrules` (when all exist)
 - Purpose: ensure rule compatibility across AI tools (Cursor, Copilot, Devin, etc.)
 
-## INTENT.md → SESSION.md Pattern
+## Work Anchors
 
-**Before starting work**:
-- Check if INTENT.md exists → if not, check the backlog (FIXME.md) or ask the user
-- If `WORKLOG/` exists, check the latest entry → understand recent decisions, completions, and blockers
-- Ambiguous situations → record in SESSION.md and ask the user
-
-**Context limit**: Conversation exceeding ~30 turns or response slowdown → snapshot to SESSION.md and request a new session
+INTENT.md, FIXME.md, ROADMAP.md, and WORKLOG/ are **optional anchors** — use whichever the project provides; never require them. The session-start order for reading these is defined in 06-session "Steps 1–5". Scope-source priority when no INTENT.md is in use is defined below in "Auto-Pick from Backlog".
 
 ## WORKLOG Daily Snapshots
 
@@ -172,7 +166,7 @@ Recommended template:
 
 ## Auto-Pick from Backlog
 
-When INTENT.md is empty or missing (in priority order):
+When no INTENT.md is in use, or it is empty (in priority order):
 
 1. `FIXME.md` → 🔴 [HIGH] items (broken functionality / security)
 2. `FIXME.md` → 🟠 [MED] items

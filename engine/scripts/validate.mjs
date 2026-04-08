@@ -15,7 +15,9 @@ import { fileURLToPath } from 'url'
 import { load as parseYaml } from 'js-yaml'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = join(__dirname, '..')
+const ROOT = join(__dirname, '..', '..')
+const CORE_DIR = join(ROOT, 'core', 'rules')
+const PROFILE_DIR = join(ROOT, 'examples', 'profiles')
 
 const REQUIRED_CORE = ['00-identity', '01-git', '02-code', '03-security', '04-workflow', '05-responses', '06-session']
 
@@ -28,18 +30,23 @@ function ok(msg)    { console.log(`  ✅ ${msg}`) }
 
 console.log('[validate] ai-rules validation starting...\n')
 
-// 1. core/ file existence check
-console.log('📁 core/ files check')
+// 1. core/rules/ file existence check
+console.log('📁 core/rules/ files check')
 for (const name of REQUIRED_CORE) {
-  const path = join(ROOT, 'core', `${name}.md`)
+  const path = join(CORE_DIR, `${name}.md`)
   if (existsSync(path)) ok(name)
-  else error(`core/${name}.md missing`)
+  else error(`core/rules/${name}.md missing`)
 }
 
 // 2. profiles/*.yaml validation
-console.log('\n📋 profiles/ validation')
-const profileDir = join(ROOT, 'profiles')
-const profileFiles = readdirSync(profileDir).filter(f => f.endsWith('.yaml') && !f.startsWith('_'))
+console.log('\n📋 examples/profiles/ validation')
+const profileDir = PROFILE_DIR
+if (!existsSync(profileDir)) {
+  warn(`profile directory ${profileDir} not found — skipping profile checks`)
+}
+const profileFiles = existsSync(profileDir)
+  ? readdirSync(profileDir).filter(f => f.endsWith('.yaml') && !f.startsWith('_'))
+  : []
 
 for (const pf of profileFiles) {
   const name = basename(pf, '.yaml')
@@ -57,10 +64,10 @@ for (const pf of profileFiles) {
   if (coreSection) refs.push(...[...coreSection[1].matchAll(/^\s+-\s+(\S+)/gm)].map(m => m[1]))
   if (extSection) refs.push(...[...extSection[1].matchAll(/^\s+-\s+(\S+)/gm)].map(m => m[1]))
   for (const ref of refs) {
-    const coreExists = existsSync(join(ROOT, 'core', `${ref}.md`))
+    const coreExists = existsSync(join(CORE_DIR, `${ref}.md`))
     const extExists = existsSync(join(ROOT, 'extensions', `${ref}.md`))
     if (coreExists || extExists) ok(`referenced block '${ref}' exists`)
-    else error(`referenced block '${ref}' missing (not in core/ or extensions/)`)
+    else error(`referenced block '${ref}' missing (not in core/rules/ or extensions/)`)
   }
 }
 
@@ -145,7 +152,11 @@ if (existsSync(agentExtDir)) {
 
 // 4. extensions/ orphan check (extension not used in any profile)
 console.log('\n🔍 orphan extension check')
-const extFiles = readdirSync(join(ROOT, 'extensions')).filter(f => f.endsWith('.md'))
+const extDir = join(ROOT, 'extensions')
+const extFiles = existsSync(extDir)
+  ? readdirSync(extDir).filter(f => f.endsWith('.md'))
+  : []
+if (!existsSync(extDir)) warn('extensions/ directory not found — skipping orphan check')
 
 for (const ef of extFiles) {
   const name = basename(ef, '.md')
@@ -186,8 +197,11 @@ for (const pf of profileFiles) {
 // 4. Divergence detection: output/ vs actual project files
 console.log('\n🔄 diverge detection (output/ vs actual project)')
 const outputRoot = join(ROOT, 'output')
+if (!existsSync(outputRoot)) {
+  warn('output/ directory not found — skipping diverge detection')
+}
 
-for (const pf of profileFiles) {
+for (const pf of (existsSync(outputRoot) ? profileFiles : [])) {
   const name = basename(pf, '.yaml')
   const raw = readFileSync(join(profileDir, pf), 'utf-8')
   const profile = parseYaml(raw)

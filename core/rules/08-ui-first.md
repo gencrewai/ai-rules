@@ -4,7 +4,7 @@
 
 Before starting any frontend page/component implementation, **you must first discover and review existing HTML mockup files in the project.**
 
-Proactively search even if not listed in INTENT.md `context.docs`.
+Search proactively regardless of whether the project uses INTENT.md or any other anchor file.
 Starting UI implementation without checking mockups → **auto-fail** (prevents building UI from scratch that doesn't match existing mockups)
 
 ---
