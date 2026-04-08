@@ -35,6 +35,21 @@ All code modification and analysis responses must include a label:
 - [ ] Staging deployment (after pushing to develop)
 - [ ] Production deployment (only on user request)
 
+## Out-of-Scope Edit Disclosure (Required)
+
+When the agent is about to modify or create files **outside the user's apparent task scope** — including but not limited to:
+
+- Files in a different project / repository than the current working directory
+- Shared infrastructure files (e.g. `core/`, `tools/`, root config) when the user's request sounded local
+- Files the user did not explicitly mention by name
+
+The agent MUST:
+
+1. **Before editing**: list the exact paths it intends to touch and a one-line reason for each, then proceed only if the user has not objected. For risky or surprising scopes, ask for explicit confirmation.
+2. **After editing**: list every path actually changed (with line ranges when helpful) and a one-line summary of the change per file. This is in addition to the standard Completion Report.
+
+Rationale: prevents the user from discovering scope creep only at commit/PR time. A single small edit in `core/` can ripple to every downstream project after the next sync — the user must know before, not after.
+
 ## Repository Scan Prohibition
 
 Full repository scanning is forbidden — only read files referenced from CLAUDE.md / INTENT.md / docs index.
