@@ -88,7 +88,7 @@ The agent operates with a **minimal footprint** (per Anthropic official guidance
 
 - Never modify files outside the request scope
 - Use only the minimum required permissions and tools
-- Never leave temporary state behind after completion (stash, temp branches, etc.)
+- Never leave temporary state behind after completion (temp branches, unsquashed WIP commits, etc.). The agent does not create stashes; if a user-created stash exists at session end, report it rather than touching it.
 - Prefer simple approaches over complex multi-agent architectures when possible
 
 ## AI Autonomous Execution vs. Human Approval Criteria
@@ -181,10 +181,12 @@ When INTENT.md is empty or missing (in priority order):
 - **Same error twice**: Switch to DIAGNOSE MODE → **invoke the investigator agent** (builder stops modifying)
   - Investigator performs root cause analysis and delivers a diagnosis report to the builder
   - Builder resumes fixes based only on the diagnosis report
-- **Before any fix attempt**: `git stash push -m "SNAPSHOT: {desc}"`
-  - After stash, verify with `git stash list`
-  - To restore on failure: `git stash pop` (never auto-execute — provide the command to the user)
-  - `git stash drop` / `git stash clear` absolutely forbidden
+- **Before any fix attempt — snapshot policy** (01-git Pre-work Check takes precedence):
+  - **Clean worktree**: no snapshot needed. The last commit already is the snapshot; on failure, instruct the user to run `git checkout -- .` or `git reset --hard HEAD` themselves.
+  - **Dirty worktree**: the agent must NOT start the fix. Stop and report to the user per 01-git Pre-work Check. The user decides whether to commit, discard, or stash.
+  - **If a snapshot is genuinely required**: prefer a **WIP commit** (`git commit -m "WIP: snapshot {desc}"`) over stash — explicit, reflog-recoverable, no staged/untracked loss.
+  - **`git stash push` is NOT an agent action.** The agent may only *suggest* the command for the user to run; never auto-execute. Reasons: staged-state loss on pop, untracked file omission, pop conflicts (which would violate 01-git "no auto conflict resolution"), multi-stash index confusion, destruction of user's intentional dirty state.
+  - `git stash drop` / `git stash clear` absolutely forbidden under any circumstance.
 - **One fix per iteration** → verify → restore snapshot on failure
 - **3 consecutive failures**: STOP → rollback → report to user (attach investigator diagnosis report)
 

@@ -36,6 +36,7 @@ Core guardrails that can be bypassed under context pressure if only advisory:
 | No git push --force | `guard-push-force.sh` | **tooling** | `push --force` or `push -f` pattern | Block |
 | Block migrate reset / DB DROP | `guard-destructive-db.sh` | **tooling** | `migrate reset`, `db push --force-reset`, `DROP DATABASE/TABLE`, `TRUNCATE` | Block + manual procedure guidance |
 | R2 reversibility comprehensive block | `guard-reversibility.sh` | governance | Above patterns + additional R2 commands | Block (safety-manifest based) |
+| Block agent-initiated `git stash` | `guard-stash.sh` | **tooling** | `git stash push`, `git stash save`, bare `git stash` | Block + suggest WIP commit (per 04-workflow Failure Protocol) |
 
 > **Channel design rationale**: `guard-push-force.sh` and `guard-destructive-db.sh` are distributed via the **tooling channel** so they apply even to projects with `governance.enabled: false`. `guard-branch.sh` and `guard-reversibility.sh` depend on safety-manifest.yaml and remain in the governance channel.
 
