@@ -6,15 +6,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'cd \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" && bash .claude/hooks/guard-branch.sh'"
+            "command": "bash .claude/hooks/guard-branch.sh"
           },
           {
             "type": "command",
-            "command": "bash -c 'cd \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" && bash .claude/hooks/guard-secrets.sh'"
+            "command": "bash .claude/hooks/guard-secrets.sh"
           },
           {
             "type": "command",
-            "command": "bash -c 'cd \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" && bash .claude/hooks/guard-reversibility.sh'"
+            "command": "bash .claude/hooks/guard-reversibility.sh"
           }
         ]
       }
