@@ -46,7 +46,7 @@ The agent MUST follow the disclosure protocol below if **any** of these apply:
 
 | Trigger | Example |
 |---------|---------|
-| **A. Different project / working directory** | Current cwd is `D:\dev-project\ai-rules` but the edit targets `D:\dev\AITEM\...` or any other repo |
+| **A. Different project / working directory** | Current cwd is `/projects/ai-rules` but the edit targets `/projects/other-app/...` or any other repo |
 | **B. Shared infrastructure inside the current repo** | `core/`, `tools/`, `adapters/`, root config files (`package.json`, `tsconfig*.json`, `.github/`, etc.) |
 | **C. Unmentioned files** | Files the user did not name in the request, when the request sounded local/specific |
 

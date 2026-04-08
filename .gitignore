@@ -1,9 +1,11 @@
 node_modules/
 output/
 docs/research/
+.playwright-mcp/
+package-lock.json
 .env
 .env.local
-.claude/
+.claude/settings.local.json
 .cursor/
 .vscode/
 ai_logs/
