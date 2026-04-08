@@ -12,10 +12,11 @@
 #   - *.test.*, *.spec.* (test files)
 #   - package-lock.json, yarn.lock (dependency locks)
 
-set -euo pipefail
+set -uo pipefail
 
 # PreToolUse hook: read JSON input from stdin
-INPUT=$(cat)
+INPUT=$(cat 2>/dev/null || true)
+[[ -z "$INPUT" ]] && exit 0
 
 # Process Bash tool only
 TOOL_NAME=$(printf '%s' "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4)

@@ -11,10 +11,11 @@
 #   1. If .ai-governance/safety-manifest.yaml exists → use manifest-based patterns
 #   2. If no manifest → use hardcoded fallback patterns
 
-set -euo pipefail
+set -uo pipefail
 
 # ── stdin JSON parsing (injection defense: absolutely no eval/exec) ────────────────────────
-INPUT=$(cat)
+INPUT=$(cat 2>/dev/null || true)
+[[ -z "$INPUT" ]] && exit 0
 
 # python3 preferred, node fallback
 COMMAND=$(printf '%s' "$INPUT" | python3 -c "

@@ -13,10 +13,11 @@
 #   3. Block if current branch is protected (main/master/develop or per safety-manifest)
 #   4. Pass immediately if not a git commit
 
-set -euo pipefail
+set -uo pipefail
 
 # ── stdin JSON parsing (injection defense: absolutely no eval/exec) ────────────────────────
-INPUT=$(cat)
+INPUT=$(cat 2>/dev/null || true)
+[[ -z "$INPUT" ]] && exit 0
 
 COMMAND=$(printf '%s' "$INPUT" | python3 -c "
 import sys, json
