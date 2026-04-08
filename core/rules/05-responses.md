@@ -37,18 +37,31 @@ All code modification and analysis responses must include a label:
 
 ## Out-of-Scope Edit Disclosure (Required)
 
-When the agent is about to modify or create files **outside the user's apparent task scope** — including but not limited to:
+(Complements 04-workflow Minimal Footprint — that rule says *don't*; this one says *if you must, disclose*.)
 
-- Files in a different project / repository than the current working directory
-- Shared infrastructure files (e.g. `core/`, `tools/`, root config) when the user's request sounded local
-- Files the user did not explicitly mention by name
+### Triggers (objective — not "agent's judgment")
 
-The agent MUST:
+The agent MUST follow the disclosure protocol below if **any** of these apply:
 
-1. **Before editing**: list the exact paths it intends to touch and a one-line reason for each, then proceed only if the user has not objected. For risky or surprising scopes, ask for explicit confirmation.
-2. **After editing**: list every path actually changed (with line ranges when helpful) and a one-line summary of the change per file. This is in addition to the standard Completion Report.
+| Trigger | Example |
+|---------|---------|
+| **A. Different project / working directory** | Current cwd is `D:\dev-project\ai-rules` but the edit targets `D:\dev\AITEM\...` or any other repo |
+| **B. Shared infrastructure inside the current repo** | `core/`, `tools/`, `adapters/`, root config files (`package.json`, `tsconfig*.json`, `.github/`, etc.) |
+| **C. Unmentioned files** | Files the user did not name in the request, when the request sounded local/specific |
 
-Rationale: prevents the user from discovering scope creep only at commit/PR time. A single small edit in `core/` can ripple to every downstream project after the next sync — the user must know before, not after.
+### Protocol
+
+1. **Before editing — list paths.** Output the exact paths (absolute when crossing projects) and a one-line reason per path. Then:
+   - **Trigger A (different project)** → STOP and ask for explicit confirmation. Never edit another project's files without a "yes" in the same turn.
+   - **Trigger B (shared infra)** → STOP and ask for explicit confirmation. A single `core/` edit propagates to every downstream project on next sync.
+   - **Trigger C (unmentioned files only)** → list and proceed unless the user objects.
+2. **After editing — list paths again.** In the Completion Report, include an `Out-of-scope edits:` field listing every changed path with a one-line summary per file. If none, write `Out-of-scope edits: none` explicitly (so absence is auditable, not silent).
+
+### Rationale
+
+- **Cross-project edits** are the most surprising — the user often does not realize the agent even *can* reach another repo. Real incident: agent fixed `core/` rules while user thought the change was local to a feature branch.
+- **`core/` ripple effect**: one small edit propagates to every downstream project after sync. Explicit pre-confirmation is cheap; post-incident rollback is not.
+- **Auditable absence**: forcing `Out-of-scope edits: none` makes silence a positive declaration rather than an oversight.
 
 ## Repository Scan Prohibition
 
