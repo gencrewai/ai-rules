@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+> Author: Claude Code (Opus 4.6)
+> Approved-by: gencrew
+>
+> Release date is filled in when this section is promoted to a
+> versioned release (e.g. `## [0.2.0] - 2026-04-08`). Until then,
+> see git commit metadata for per-change timestamps.
+
 ### Changed
 
 - **INTENT.md is now an optional anchor** across all core rules.

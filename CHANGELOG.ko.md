@@ -6,6 +6,13 @@ English version: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+> 작성자: Claude Code (Opus 4.6)
+> 승인: gencrew
+>
+> 릴리스 날짜는 이 섹션이 버전 릴리스로 격상될 때
+> (예: `## [0.2.0] - 2026-04-08`) 함께 기재됩니다. 그 전까지
+> 개별 변경의 타임스탬프는 git 커밋 메타데이터를 참고하세요.
+
 ### Changed (변경)
 
 - **`INTENT.md`가 모든 core 규칙에서 선택적 anchor로 강등되었습니다.**
@@ -39,11 +46,12 @@ English version: [CHANGELOG.md](CHANGELOG.md)
 
 ### Fixed (수정)
 
-- `engine/scripts/validate.mjs`가 현재의 `core/rules/` + `examples/profiles/`
-  구조에 맞게 갱신되었습니다. 이전에는 리팩토링 이전 경로(`engine/core/` +
-  `engine/profiles/`)를 가리키고 있어서 디렉토리 없음 에러로 크래시했습니다.
-  선택적 디렉토리(`extensions/`, `agents/`, `output/`)가 없을 때는 이제
-  graceful하게 skip됩니다.
+- **`engine/scripts/validate.mjs`가 현재 디렉토리 구조에 맞게 갱신되었습니다.**
+  이전에는 리팩토링 이전 경로(`engine/core/` + `engine/profiles/`)를
+  가리키고 있어서 디렉토리 없음 에러로 크래시했습니다. 이제
+  `core/rules/` + `examples/profiles/`와 일치하며, 선택적 디렉토리
+  (`extensions/`, `agents/`, `output/`)가 없을 때는 graceful하게
+  skip됩니다.
 
 ### Background (배경)
 
