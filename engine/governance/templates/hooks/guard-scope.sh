@@ -122,11 +122,31 @@ fi
 
 [[ -z "$TRIGGER" ]] && exit 0
 
-# ── Check for confirmation token ───────────────────────────────────────────────
-# If user has explicitly confirmed this scope in the current session, allow.
-# Confirmation file written by user or by an upstream confirm-capture hook.
-CONFIRM_FILE=".claude/confirmed-actions/scope-confirmed"
-if [[ -f "$CONFIRM_FILE" ]]; then
+# ── Check for single-use confirmation token ───────────────────────────────────
+# Token convention (matches guard-reversibility): one trigger = one token name.
+#   Trigger A           → scope-cross-project-{YYYYMMDD}
+#   Trigger B           → scope-shared-infra-{YYYYMMDD}
+#   Trigger B-root-config → scope-root-config-{YYYYMMDD}
+# Token is created by confirm-capture.sh when the user types
+#   CONFIRM scope-{name}-{YYYYMMDD}
+# and is DELETED on successful match (single use, like guard-reversibility).
+case "$TRIGGER" in
+  A)              CONFIRM_NAME="scope-cross-project" ;;
+  B)              CONFIRM_NAME="scope-shared-infra" ;;
+  B-root-config)  CONFIRM_NAME="scope-root-config" ;;
+  *)              CONFIRM_NAME="scope-unknown" ;;
+esac
+
+TODAY=$(date +%Y%m%d 2>/dev/null || echo "TODAY")
+
+_PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+[[ -z "$_PROJECT_ROOT" ]] && _PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+_CONFIRMED_DIR="${_PROJECT_ROOT}/.claude/confirmed-actions"
+_CONFIRM_FILE="${_CONFIRMED_DIR}/${CONFIRM_NAME}-${TODAY}"
+
+if [[ -f "$_CONFIRM_FILE" ]]; then
+  rm -f "$_CONFIRM_FILE" 2>/dev/null || true
+  printf '[guard-scope] CONFIRM verified, passing: %s-%s\n' "$CONFIRM_NAME" "$TODAY" >&2
   exit 0
 fi
 
@@ -135,29 +155,26 @@ case "$TRIGGER" in
   A)
     cat <<EOF
 
-⚠️ [guard-scope] Cross-project edit detected — confirmation required
+⚠️  [guard-scope] Cross-project edit detected — confirmation required
 
 Target: $FILE_PATH
 Resolved: $NORMALIZED
 Current working directory: $CWD
 
-This file is OUTSIDE the current project. Per 05-responses
-Out-of-Scope Edit Disclosure (Trigger A), the agent must:
-  1. Tell the user the exact path it intends to edit
-  2. Get an explicit "yes" in the same turn
-  3. Only then proceed
+This file is OUTSIDE the current project (Trigger A,
+05-responses Out-of-Scope Edit Disclosure).
 
-Agent action: stop, report the path to the user, ask for explicit
-confirmation before retrying.
+To allow ONE such edit, the user must type the exact phrase:
+  CONFIRM ${CONFIRM_NAME}-${TODAY}
 
-To bypass for this session (after explicit user approval):
-  mkdir -p .claude/confirmed-actions && touch .claude/confirmed-actions/scope-confirmed
+The token is single-use: it permits one Edit/Write call and is then
+deleted. Each subsequent cross-project edit requires a new CONFIRM.
 EOF
     ;;
   B)
     cat <<EOF
 
-⚠️ [guard-scope] Shared infrastructure edit detected — confirmation required
+⚠️  [guard-scope] Shared infrastructure edit detected — confirmation required
 
 Target: $RELATIVE
 Resolved: $NORMALIZED
@@ -166,33 +183,27 @@ This file is in a shared infrastructure directory (core/, tools/,
 adapters/, engine/, or .github/). Edits here propagate to every
 downstream project on next sync.
 
-Per 05-responses Out-of-Scope Edit Disclosure (Trigger B), the agent
-must:
-  1. Tell the user the exact path it intends to edit
-  2. Get an explicit "yes" in the same turn
-  3. Only then proceed
+To allow ONE such edit, the user must type the exact phrase:
+  CONFIRM ${CONFIRM_NAME}-${TODAY}
 
-Agent action: stop, report the path to the user, ask for explicit
-confirmation before retrying.
-
-To bypass for this session (after explicit user approval):
-  mkdir -p .claude/confirmed-actions && touch .claude/confirmed-actions/scope-confirmed
+The token is single-use: it permits one Edit/Write call and is then
+deleted. Each subsequent shared-infra edit requires a new CONFIRM.
 EOF
     ;;
   B-root-config)
     cat <<EOF
 
-⚠️ [guard-scope] Root config edit detected — confirmation required
+⚠️  [guard-scope] Root config edit detected — confirmation required
 
 Target: $RELATIVE
 
 This is a root-level configuration file (package.json, tsconfig,
 Dockerfile, etc.). Changes affect the whole project.
 
-Per 05-responses Out-of-Scope Edit Disclosure (Trigger B), the agent
-must get explicit user confirmation before editing.
+To allow ONE such edit, the user must type the exact phrase:
+  CONFIRM ${CONFIRM_NAME}-${TODAY}
 
-Agent action: stop, report the path, ask the user.
+The token is single-use.
 EOF
     ;;
 esac
