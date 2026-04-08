@@ -117,3 +117,38 @@ high_risk_actions:
     reversibility: R2
     approval: block
     message: "rm -rf on root-level path — deletes files at or above project root"
+
+# ── Out-of-scope edit triggers (guard-scope.sh) ──────────────────────────────
+# Paths that the agent must get explicit user confirmation before editing.
+# Used by guard-scope.sh hook (PreToolUse on Edit/Write/NotebookEdit).
+# See 05-responses.md "Out-of-Scope Edit Disclosure" section for rationale.
+#
+# Per-project customization:
+#   Add to governance.safety.out_of_scope.shared_dirs / root_config_files in profile.yaml
+out_of_scope:
+  # Top-level directories where edits propagate widely (sync targets, CI, build infra)
+  shared_dirs:
+    - core
+    - tools
+    - adapters
+    - engine
+    - .github
+  # Root-level config files (only flagged when at repo root, not nested)
+  root_config_files:
+    - package.json
+    - package-lock.json
+    - pnpm-lock.yaml
+    - yarn.lock
+    - tsconfig.json
+    - tsconfig.*.json
+    - pyproject.toml
+    - poetry.lock
+    - requirements.txt
+    - Cargo.toml
+    - Cargo.lock
+    - go.mod
+    - go.sum
+    - Makefile
+    - Dockerfile
+    - docker-compose.yml
+    - docker-compose.yaml
