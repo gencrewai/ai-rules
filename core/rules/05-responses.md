@@ -16,6 +16,7 @@ All code modification and analysis responses must include a label:
 - List of changed files (path + one-line description of change)
 - Current branch / PR status
 - Commit hash
+- **`Out-of-scope edits:`** — list any path matching triggers A/B/C from the Out-of-Scope Edit Disclosure section, with a one-line summary per file. If none, write `Out-of-scope edits: none` explicitly. This field is mandatory; omitting it is itself a rule violation.
 
 ### 2. Branch Status Report
 

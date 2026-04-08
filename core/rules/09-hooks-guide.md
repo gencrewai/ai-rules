@@ -51,6 +51,7 @@ Effective additions depending on project needs:
 | Lint after .ts/.tsx edit | — | `PostToolUse` (`Edit`) | `.ts`, `.tsx` file modified | Auto-run `eslint {file}` |
 | .env modification warning | — | `PreToolUse` (`Edit`) | Attempt to modify `.env` file | Request user confirmation |
 | Cross-push block | — | `PreToolUse` (`Bash`) | `push origin {A}:{B}` (A≠B pattern) | Block |
+| Out-of-scope edit warning | `guard-scope.sh` | `PreToolUse` (`Edit`, `Write`) | Target path is outside cwd repo, OR matches `core/`, `tools/`, `adapters/`, root config | Request user confirmation (per 05-responses Out-of-Scope Edit Disclosure triggers A/B) |
 
 #### guard-freeze Usage
 
