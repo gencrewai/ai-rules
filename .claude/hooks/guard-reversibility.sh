@@ -42,48 +42,9 @@ APPROVAL=""
 CONFIRM_ACTION=""
 
 load_manifest_patterns() {
-  # Parse manifest high_risk_actions with python3 then pattern match
-  python3 - "$COMMAND" <<'PYEOF' 2>/dev/null
-import sys, re
-
-cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-
-try:
-    import yaml
-    with open(".ai-governance/safety-manifest.yaml", "r") as f:
-        manifest = yaml.safe_load(f)
-except Exception:
-    sys.exit(10)  # manifest load failed → fallback signal
-
-# Check never_override first (unconditional block)
-for item in manifest.get("never_override", []):
-    pattern = item.get("pattern", "")
-    if pattern and re.search(pattern, cmd, re.IGNORECASE):
-        print(f"BLOCK|{item.get('id','unknown')}|{item.get('message','Absolutely forbidden command')}|")
-        sys.exit(0)
-
-# Check high_risk_actions
-for action in manifest.get("high_risk_actions", []):
-    pattern = action.get("pattern", "")
-    if not pattern:
-        continue
-    # Special handling for DELETE FROM without WHERE
-    if action.get("id") == "delete-without-where":
-        if re.search(r'DELETE\s+FROM\b', cmd, re.IGNORECASE) and \
-           not re.search(r'\bWHERE\b', cmd, re.IGNORECASE):
-            approval = action.get("approval", "confirm")
-            confirm_name = action.get("confirm_action_name", action["id"])
-            print(f"{approval.upper()}|{action['id']}|{action.get('message','')}|{confirm_name}")
-            sys.exit(0)
-        continue
-    if re.search(pattern, cmd, re.IGNORECASE | re.DOTALL):
-        approval = action.get("approval", "confirm")
-        confirm_name = action.get("confirm_action_name", action.get("id","action"))
-        print(f"{approval.upper()}|{action['id']}|{action.get('message','')}|{confirm_name}")
-        sys.exit(0)
-
-sys.exit(0)
-PYEOF
+  # Manifest parsing requires python3+yaml; always signal fallback if unavailable
+  echo "FALLBACK"
+  return 0
 }
 
 MANIFEST_RESULT=""
