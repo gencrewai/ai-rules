@@ -12,7 +12,7 @@
 #   - *.test.*, *.spec.* (test files)
 #   - package-lock.json, yarn.lock (dependency locks)
 
-set -uo pipefail
+set -u
 
 # PreToolUse hook: read JSON input from stdin
 INPUT=$(cat 2>/dev/null || true)

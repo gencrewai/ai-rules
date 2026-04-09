@@ -11,13 +11,18 @@
 #   1. If .ai-governance/safety-manifest.yaml exists → use manifest-based patterns
 #   2. If no manifest → use hardcoded fallback patterns
 
-set -uo pipefail
+set -u
 
 # ── stdin JSON parsing (injection defense: absolutely no eval/exec) ────────────────────────
 INPUT=$(cat 2>/dev/null || true)
 [[ -z "$INPUT" ]] && exit 0
 
-# python3 preferred, node fallback
+# Parse command from JSON input (node preferred, python3 fallback)
+COMMAND=$(printf '%s' "$INPUT" | node -e "
+let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+  try { const o=JSON.parse(d); console.log((o.tool_input||{}).command||''); }
+  catch(e){ console.log(''); }
+})" 2>/dev/null) || \
 COMMAND=$(printf '%s' "$INPUT" | python3 -c "
 import sys, json
 try:
@@ -25,12 +30,7 @@ try:
     print(data.get('tool_input', {}).get('command', ''))
 except Exception:
     print('')
-" 2>/dev/null) || \
-COMMAND=$(printf '%s' "$INPUT" | node -e "
-let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
-  try { const o=JSON.parse(d); console.log((o.tool_input||{}).command||''); }
-  catch(e){ console.log(''); }
-})" 2>/dev/null) || true
+" 2>/dev/null) || true
 COMMAND=${COMMAND:-""}
 
 [[ -z "$COMMAND" ]] && exit 0
