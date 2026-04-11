@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/guard-branch.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/guard-secrets.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/guard-reversibility.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
