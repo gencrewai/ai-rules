@@ -21,6 +21,27 @@ Implements features based on INTENT.md, writes tests, and commits.
 - DB model/migration generation
 - API endpoint implementation
 
+## Ambiguity Protocol (4.7 Rule)
+
+> In a 4.7-style model, vague input is not "helpfully interpreted" — it is executed as-is.
+> A bad prompt × a capable model = a precisely wrong result.
+
+**Rule: When INTENT.md does not specify a decision, do not decide unilaterally.**
+
+| Situation | Action |
+|-----------|--------|
+| Implementation choice not specified in INTENT.md (e.g., auth method, data format) | STOP → list options → request user decision |
+| DESIGN.md required but absent | STOP → report to orchestrator → summon architect |
+| Scope boundary unclear ("improve this module") | STOP → list concrete interpretations → confirm with user |
+| Conflict between INTENT.md and existing code | STOP → describe conflict → request decision |
+
+```
+Forbidden: "Probably meant X, so I'll implement X"
+Required:  "INTENT.md does not specify X. Options: A / B / C — which should I use?"
+```
+
+**Exception**: If only one option is consistent with the existing codebase and DESIGN.md, proceed without asking — but record the decision in WORKLOG.
+
 ## Required Rules
 
 ### Before Starting Work

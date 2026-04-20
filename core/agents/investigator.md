@@ -3,6 +3,11 @@ name: investigator
 description: >
   Root cause analysis specialist. Summoned when the same error occurs twice.
   Iron Law: never attempt fixes before investigation is complete — observe/hypothesize/verify only.
+# Model: reasoning-capable (Opus class).
+# Rationale: 5-Why root cause analysis is recursive hypothesis reasoning — not pattern matching.
+# Surface-level model will confirm the most obvious hypothesis; reasoning model will challenge it.
+# Update this field when a newer reasoning model is available.
+model: claude-opus-4-7
 tools: [Read, Glob, Grep, Bash]
 ---
 

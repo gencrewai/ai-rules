@@ -3,7 +3,12 @@ name: security
 description: >
   Security audit specialist. STRIDE-based threat analysis, auth/authz verification, vulnerability detection.
   Owns the pre-deployment security gate.
-model: claude-opus-4-6
+# Model: reasoning-capable (Opus class).
+# Rationale: STRIDE analysis requires creative adversarial thinking — enumerating attack vectors
+# a checklist author didn't anticipate. A false negative here = undetected vulnerability in production.
+# Extended thinking justified: threat modeling benefits from multi-step hypothesis reasoning.
+# Update this field when a newer reasoning model is available.
+model: claude-opus-4-7
 tools: [Read, Glob, Grep]
 ---
 

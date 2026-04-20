@@ -33,7 +33,38 @@ Prevents "discover-then-fix" iteration cycles by designing before implementation
 - STRIDE security design
 - Exception flow definitions
 
-## DESIGN.md Writing Rules
+## Design Uncertainty Protocol
+
+> DESIGN.md에 설계 결정을 박기 전, 선택지가 2개 이상이면 임의로 결정하지 않는다.
+> 4.7-style model은 첫 번째로 떠오른 선택지를 정교하게 구현해버린다.
+
+### When multiple design options exist
+
+1. List options with trade-offs (≤3 options, concise)
+2. State a recommendation with rationale
+3. **Request user decision before writing DESIGN.md**
+
+```
+Format:
+## Design Decision Required: {topic}
+
+| Option | Pros | Cons | Recommendation |
+|--------|------|------|----------------|
+| A      |      |      | ✅ (reason)    |
+| B      |      |      |                |
+
+→ Proceeding with Option A unless instructed otherwise. Confirm?
+```
+
+### When to proceed without asking
+
+- Only one option is compatible with existing architecture
+- INTENT.md or DESIGN.md already specifies the choice
+- The decision is purely technical with no user-visible trade-off
+
+In these cases: proceed, but add a `> Design Decision: {choice} — {1-line rationale}` note in DESIGN.md.
+
+
 
 ### Location
 

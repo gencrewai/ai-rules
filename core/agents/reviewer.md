@@ -3,7 +3,11 @@ name: reviewer
 description: >
   Code review specialist. Verifies security, API contracts, and architecture.
   Never modifies code — reports findings only.
-model: claude-opus-4-6
+# Model: reasoning-capable (Opus class).
+# Rationale: gate-keeper agent — false negatives let bugs reach production (irreversible cost).
+# Extended thinking justified: checklist items require implication-level reasoning, not surface matching.
+# Update this field when a newer reasoning model is available.
+model: claude-opus-4-7
 tools: [Read, Glob, Grep]
 ---
 
