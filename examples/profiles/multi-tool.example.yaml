@@ -1,0 +1,75 @@
+# multi-tool.example.yaml — Deploy rules + agents to every supported runner.
+# Copy this file to profiles/ and tweak target_path / enabled flags.
+#
+# Agent handling per tool:
+#   claude-code : native .claude/agents/{name}.md            (subagent)
+#   codex       : native .codex/agents/{name}.md             (subagent)
+#   cursor      : .cursor/rules/agents/{name}.mdc            (role rule)
+#   windsurf    : .windsurf/rules/agents/{name}.md           (role rule)
+#   gemini      : .gemini/agents/{name}.md                   (role prompt)
+#   copilot     : .github/copilot-agents/{name}.md + README  (role prompt)
+#   cline       : .cline/agents/{name}.md                    (role prompt)
+#
+# "role rule / role prompt" means the target tool has no Task-style subagent
+# spawner — the file becomes a context document the model loads when relevant.
+
+project: multi-tool-demo
+target_path: /path/to/multi-tool-demo
+
+tools:
+  claude-code:
+    enabled: true
+    output: CLAUDE.md
+    agents: { enabled: true, output: .claude/agents/ }
+
+  codex:
+    enabled: true
+    output: AGENTS.md
+    agents: { enabled: true, output: .codex/agents/ }
+
+  cursor:
+    enabled: true
+    output: .cursor/rules/
+    agents: { enabled: true, output: .cursor/rules/agents/ }
+
+  windsurf:
+    enabled: true
+    output: .windsurfrules
+    agents: { enabled: true, output: .windsurf/rules/agents/ }
+
+  gemini:
+    enabled: true
+    output: GEMINI.md
+    agents: { enabled: true, output: .gemini/agents/ }
+
+  copilot:
+    enabled: true
+    output: .github/copilot-instructions.md
+    agents: { enabled: true, output: .github/copilot-agents/ }
+
+  cline:
+    enabled: true
+    output: .clinerules
+    agents: { enabled: true, output: .cline/agents/ }
+
+  plain:
+    enabled: true
+    output: AI-RULES.md
+
+core:
+  - 01-git
+  - 02-code
+  - 03-security
+  - 04-workflow
+
+agents:
+  enabled: true
+  include:
+    - planner
+    - builder
+    - reviewer
+    - qa
+    - security
+
+extensions: []
+overrides: {}

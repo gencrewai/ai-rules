@@ -14,6 +14,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { setupAiLogs } from './ai-logs.mjs'
 import { bootstrapProject } from './bootstrap.mjs'
+import { deployAgentsForTool, SCAFFOLD_AGENT_TOOLS } from './scaffold-agents.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -44,6 +45,9 @@ export function resolvePaths(overrides = {}) {
  * @param {string} [options.stack]       Preset stack
  * @param {boolean} [options.copyOutputDocs] Whether to copy output docs
  * @param {boolean} [options.gitInit]    Whether to init Git
+ * @param {string[]} [options.tools]     AI tools to deploy agents to
+ *                                       (subset of SCAFFOLD_AGENT_TOOLS).
+ *                                       Default ['claude-code'].
  * @param {object}  [options.paths]      Path overrides
  * @returns {{ log: string[], isError: boolean }}
  */
@@ -53,6 +57,7 @@ export async function scaffoldProject(options) {
     stack = 'react-fastapi-postgres',
     copyOutputDocs = true,
     gitInit = true,
+    tools = ['claude-code'],
     paths: pathOverrides = {},
   } = options
 
@@ -119,19 +124,6 @@ export async function scaffoldProject(options) {
         }
       }
 
-      // 2.5 Copy agent files
-      const agentsOutputDir = join(outputDocsDir, '.claude', 'agents')
-      if (existsSync(agentsOutputDir)) {
-        log.push('\n== Step 2.5: Agent File Copy ==')
-        const agentDstDir = join(projectDir, '.claude', 'agents')
-        mkdirSync(agentDstDir, { recursive: true })
-        const agentFiles = readdirSync(agentsOutputDir).filter(f => f.endsWith('.md'))
-        for (const af of agentFiles) {
-          copyFileSync(join(agentsOutputDir, af), join(agentDstDir, af))
-          log.push(`  COPY: .claude/agents/${af}`)
-        }
-      }
-
       // 2.7 Copy docs/ reference documents
       const docsOutputDir = join(outputDocsDir, 'docs')
       if (existsSync(docsOutputDir)) {
@@ -175,6 +167,27 @@ export async function scaffoldProject(options) {
       }
     } else if (copyOutputDocs) {
       log.push('\n== Step 2: Document Copy SKIP (output folder not found) ==')
+    }
+
+    // 2.5 Agent deployment (multi-tool, independent of output docs).
+    // Sources core/agents/ directly so scaffold works even without `sync`.
+    // Rules files for non-Claude runners (AGENTS.md, .cursor/rules/, ...)
+    // still require the sync engine.
+    log.push(`\n== Step 2.5: Agent Deployment (tools: ${tools.join(', ')}) ==`)
+    const unknownTools = tools.filter(t => !SCAFFOLD_AGENT_TOOLS.includes(t))
+    if (unknownTools.length) {
+      log.push(`  WARN: ignored unknown tool(s): ${unknownTools.join(', ')}`)
+      log.push(`        supported by scaffold: ${SCAFFOLD_AGENT_TOOLS.join(', ')}`)
+    }
+    const enabledTools = tools.filter(t => SCAFFOLD_AGENT_TOOLS.includes(t))
+    for (const tool of enabledTools) {
+      log.push(`  — ${tool}`)
+      await deployAgentsForTool({
+        tool,
+        aiRulesRoot: paths.aiRulesRoot,
+        projectDir,
+        logger: msg => log.push(`    ${msg}`),
+      })
     }
 
     // 2.9 New project AI logs initial setup

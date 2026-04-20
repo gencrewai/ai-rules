@@ -19,12 +19,47 @@ cp rules/01-git.md ../my-project/docs/rules/
 
 ### 2. Apply Agents
 
-Copy files from `agents/` into your project's `.claude/agents/`.
+#### Claude Code (native subagents)
 
 ```bash
 mkdir -p ../my-project/.claude/agents
 cp agents/planner.md agents/builder.md agents/reviewer.md ../my-project/.claude/agents/
 ```
+
+#### Other AI runners
+
+The `agents/*.md` files are written in Claude frontmatter format, but the
+sync engine ships adapters that convert them to every major runner's native
+layout. You don't need to hand-transform them — just enable the tool in a
+profile:
+
+| Target tool | Output layout | Adapter type |
+|---|---|---|
+| Claude Code | `.claude/agents/*.md` | native subagent |
+| Codex CLI | `.codex/agents/*.md` + `AGENTS.md` | native subagent |
+| Cursor | `.cursor/rules/agents/*.mdc` (alwaysApply: false) | role-as-rule |
+| Windsurf | `.windsurf/rules/agents/*.md` + `.windsurfrules` | role-as-rule |
+| Gemini CLI | `.gemini/agents/*.md` + `GEMINI.md` | role-as-rule |
+| GitHub Copilot | `.github/copilot-agents/*.md` + `.github/copilot-instructions.md` | role-as-rule |
+| Cline | `.cline/agents/*.md` + `.clinerules` | role-as-rule |
+| Antigravity | `.agent/agents/*.md` + `AGENTS.md` | role-as-rule (Gemini backend) |
+| Kilo / Augment / Trae / ... | configurable via profile | generic adapter |
+
+For anything beyond Claude Code, use the sync engine
+(→ [engine/README.md](../engine/README.md)).
+
+#### How non-native tools handle "agents"
+
+Only Claude Code and Codex support a real `Task`-style subagent call site.
+For everyone else, each agent file becomes a **role-scoped context document**
+that the model loads when relevant:
+
+- Internal references like `CLAUDE.md`, `.claude/agents/...` are rewritten
+  to the target tool's equivalent paths.
+- Claude-only phrases such as *"invoke the Task tool"* or *"summon the
+  reviewer subagent"* are neutralized to generic role guidance.
+- Frontmatter is kept structured for adapters that can consume it
+  (Codex), or collapsed into a visible role header for tools that can't.
 
 ### 3. Done
 

@@ -82,16 +82,34 @@ ai-rules separates commit, push, PR, and deploy into **independent axes**.
 | Medium (R1~R2) | `CONFIRM {action}-{4-digit-random}-{date}` (agent generates random number) |
 | High (R2) | Human executes directly, or approval via external channel |
 
-### 4. Multi-Tool Sync
+### 4. Multi-Tool Sync (10+ runners from one source)
 
-Generates outputs for multiple tools from a single rule source.
+Generates outputs for **every major AI coding runner** from a single rule source.
+Rules and agents are emitted in each tool's native format, with internal
+references (`CLAUDE.md`, `.claude/agents/...`) rewritten automatically.
 
 ```
-core/rules/01-git.md  ──┬──→  CLAUDE.md      (Claude Code)
-                        ├──→  .cursor/rules/  (Cursor)
-                        ├──→  .windsurfrules  (Windsurf)
-                        └──→  AI-RULES.md     (Others)
+core/rules/      ──┬──→  CLAUDE.md                          (Claude Code — native subagents)
+core/agents/     ──┼──→  AGENTS.md + .codex/agents/         (Codex — native subagents)
+                   ├──→  .cursor/rules/ + .cursor/rules/agents/*.mdc   (Cursor — role rules)
+                   ├──→  .windsurfrules + .windsurf/rules/agents/     (Windsurf)
+                   ├──→  GEMINI.md + .gemini/agents/                   (Gemini)
+                   ├──→  .github/copilot-instructions.md + .github/copilot-agents/  (Copilot)
+                   ├──→  .clinerules + .cline/agents/                  (Cline)
+                   ├──→  AGENTS.md + .agent/agents/                    (Antigravity)
+                   ├──→  .kilo/ / .augment/ / .trae/  (via generic adapter, YAML-only)
+                   └──→  AI-RULES.md                                   (tool-neutral fallback)
 ```
+
+- **Native subagent runners** (Claude Code, Codex) get frontmatter + body verbatim.
+- **Role-as-rule runners** (Cursor, Windsurf, Gemini, Copilot, Cline, Antigravity)
+  get each agent converted into a use-case-scoped prompt with paths rewritten
+  and Claude-only directives (e.g. "invoke the Task tool") neutralized.
+- **Long-tail runners** (Kilo / Augment / Trae / anything new) can be added
+  with a single YAML block using the built-in `generic` adapter — no code change.
+
+Sync is **manifest-tracked**: enabled/disabled tools are reconciled on every
+run, with safe-by-default handling of locally-edited files and clean uninstall.
 
 ---
 
@@ -106,8 +124,10 @@ ai-rules/
 │   └── README.md
 │
 ├── engine/                ← Tier 2: Multi-project sync tooling
-│   ├── adapters/          #   Claude Code, Cursor, Windsurf output converters
-│   ├── scripts/           #   sync, validate, onboard
+│   ├── adapters/          #   10+ tool converters (Claude / Codex / Cursor / Windsurf /
+│   │                      #     Gemini / Copilot / Cline / Antigravity + generic)
+│   ├── scripts/           #   sync (apply / prune / uninstall), validate, onboard
+│   ├── lib/               #   manifest tracking, agent transforms, ai-logs
 │   ├── governance/        #   Cross-validation engine
 │   └── README.md
 │
@@ -135,12 +155,30 @@ node engine/cli/scaffold.mjs --name my-app --dev-root D:\dev
 
 This single command:
 - Composes all 12 rules into a single CLAUDE.md
-- Copies 9 agent role definitions to `.claude/agents/`
+- Deploys 9 agent role definitions to the **tool(s) you pick** (default: Claude Code)
 - Generates stack-specific `.env.example` and tool permissions
 - Initializes Git + auto-creates develop branch (protects main)
 - Sets up AI logs and docs directory structure
 
-Zero external dependencies — uses only Node.js built-in modules. No npm install required.
+Zero external dependencies by default — Node.js built-in modules only, no npm install required.
+
+**Multi-tool agent deploy** via `--tools`:
+
+```bash
+# Deploy agents to Claude Code + Codex CLI + Cursor in one go
+node engine/cli/scaffold.mjs --name my-app --tools claude-code,codex,cursor
+```
+
+| Tool | Output | `npm install` needed? |
+|---|---|---|
+| `claude-code` (default) | `.claude/agents/*.md` (verbatim) | No |
+| `codex` | `.codex/agents/*.md` (paths rewritten) | No |
+| `cursor` | `.cursor/rules/agents/*.mdc` (MDC + path rewrite + directive neutralization) | Yes (`js-yaml`) |
+
+> scaffold's `--tools` deploys **agent files only**. Tool-specific rules
+> files (`AGENTS.md` for Codex, `.cursor/rules/*.mdc` for Cursor) and every
+> other runner (Gemini / Windsurf / Copilot / Cline / Antigravity / long-tail)
+> are covered by [Option D: sync engine](#option-d-sync-engine-multi-project-multi-tool) below.
 
 Available stacks: `react-fastapi-postgres` (default), `next-fastapi-postgres`, `react-express-postgres`, `react-express-mongodb`, `next-none-none`
 
@@ -188,23 +226,32 @@ If you want to quickly apply the core rules without any tooling:
 # 1. Copy-paste the 4 essential rules into your project's CLAUDE.md
 #    01-git, 02-code, 03-security, 04-workflow
 
-# 2. Copy agent role definitions
+# 2. Copy agent role definitions (Claude Code)
 cp core/agents/*.md your-project/.claude/agents/
 ```
 
-→ [core/README.md](core/README.md)
+For other runners (Codex / Cursor / Windsurf / Gemini / Copilot / Cline / …),
+see [core/README.md](core/README.md) — it lists each tool's native agent
+layout, or you can let the sync engine convert them automatically.
 
-### Option D: sync engine (multi-project)
+### Option D: sync engine (multi-project, multi-tool)
 
-If you want to deploy the same rules across multiple projects:
+If you want to deploy the same rules across multiple projects — and across
+multiple AI tools per project — use the sync engine:
 
 ```bash
 cd ai-rules
 npm install
-npm run new -- my-project      # Create a profile
-npm run sync                   # Generate rules (dry-run)
-npm run sync:apply             # Apply to project
+npm run new -- my-project       # Create a profile
+npm run sync                    # Generate to output/ (preview only)
+npm run sync:apply              # Copy into the target project
+npm run sync:prune              # Apply + remove orphans from disabled tools
+npm run sync:uninstall -- --project my-project   # Remove everything we wrote
 ```
+
+Every run updates a manifest (`output/<project>/sync-status.json`) tracking
+file paths + content hashes, so disabling a tool later cleans up its files,
+and files the user edited locally are protected from being overwritten.
 
 → [engine/README.md](engine/README.md)
 
@@ -255,7 +302,7 @@ npm run sync:apply             # Apply to project
 | Approval model | Batch-scoped (P0~P3) | Per-action confirmation (causes fatigue) |
 | Confirmation friction | 3 tiers (date → random → direct execution) | Single confirmation |
 | Overnight autonomous execution | idle mode (auto-terminates after 3 failures) | Disabled or fully blocked |
-| Multi-tool | Claude Code + Cursor + Windsurf | Per-tool individual configuration |
+| Multi-tool | 10+ runners (Claude / Codex / Cursor / Windsurf / Gemini / Copilot / Cline / Antigravity / Kilo / Augment / Trae…) from one source, manifest-tracked | Per-tool individual configuration |
 | Authority boundary | Only humans approve exceptions, scope+time-limited | Nominal |
 
 ---

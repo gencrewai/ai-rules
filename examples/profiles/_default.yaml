@@ -9,12 +9,35 @@ tools:
   claude-code:
     enabled: true
     output: CLAUDE.md
+    # Native Claude Code subagents → .claude/agents/
+    agents: { enabled: true, output: .claude/agents/ }
   cursor:
     enabled: false
     output: .cursor/rules/
+    # Cursor has no native subagents — agents are emitted as use-case-scoped
+    # MDC rules (alwaysApply: false) under .cursor/rules/agents/
+    agents: { enabled: false, output: .cursor/rules/agents/ }
   windsurf:
     enabled: false
     output: .windsurfrules
+    agents: { enabled: false, output: .windsurf/rules/agents/ }
+  codex:
+    enabled: false
+    output: AGENTS.md
+    # Codex supports native agents; emitted to .codex/agents/
+    agents: { enabled: false, output: .codex/agents/ }
+  gemini:
+    enabled: false
+    output: GEMINI.md
+    agents: { enabled: false, output: .gemini/agents/ }
+  copilot:
+    enabled: false
+    output: .github/copilot-instructions.md
+    agents: { enabled: false, output: .github/copilot-agents/ }
+  cline:
+    enabled: false
+    output: .clinerules
+    agents: { enabled: false, output: .cline/agents/ }
   plain:
     enabled: true      # AI-RULES.md — always generated (tool-neutral fallback)
     output: AI-RULES.md
