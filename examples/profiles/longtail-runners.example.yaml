@@ -1,0 +1,77 @@
+# longtail-runners.example.yaml — Kilo / Augment / Trae / Antigravity.
+#
+# Demonstrates two ways to add a runner:
+#
+#   1. Declarative via the generic adapter (Kilo / Augment / Trae).
+#      Zero adapter code required — you just declare paths + rewrites in YAML.
+#
+#   2. Dedicated adapter (Antigravity) when the tool needs format-specific
+#      logic (e.g. the Gemini-backend path/tool-name quirks).
+
+project: longtail-demo
+target_path: /path/to/longtail-demo
+
+tools:
+  # --- Declarative (generic adapter) ---
+  kilo:
+    adapter: generic
+    enabled: true
+    output: .kilo/rules.md
+    agents:
+      enabled: true
+      output: .kilo/agents/
+    role_heading_prefix: "Kilo Role"
+    path_rewrites:
+      - { from: "\\bCLAUDE\\.md\\b",     to: ".kilo/rules.md" }
+      - { from: "\\.claude/agents/",     to: ".kilo/agents/" }
+      - { from: "\\.claude/",            to: ".kilo/" }
+
+  augment:
+    adapter: generic
+    enabled: true
+    output: .augment/rules.md
+    agents:
+      enabled: true
+      output: .augment/agents/
+    role_heading_prefix: "Augment Role"
+    path_rewrites:
+      - { from: "\\bCLAUDE\\.md\\b",     to: ".augment/rules.md" }
+      - { from: "\\.claude/agents/",     to: ".augment/agents/" }
+      - { from: "\\.claude/",            to: ".augment/" }
+
+  trae:
+    adapter: generic
+    enabled: true
+    output: .trae/rules.md
+    agents:
+      enabled: true
+      output: .trae/agents/
+    role_heading_prefix: "Trae Role"
+    path_rewrites:
+      - { from: "\\bCLAUDE\\.md\\b",     to: ".trae/rules.md" }
+      - { from: "\\.claude/agents/",     to: ".trae/agents/" }
+      - { from: "\\.claude/",            to: ".trae/" }
+
+  # --- Dedicated adapter ---
+  antigravity:
+    enabled: true
+    output: AGENTS.md
+    agents:
+      enabled: true
+      output: .agent/agents/
+
+core:
+  - 01-git
+  - 02-code
+  - 03-security
+  - 04-workflow
+
+agents:
+  enabled: true
+  include:
+    - planner
+    - builder
+    - reviewer
+
+extensions: []
+overrides: {}

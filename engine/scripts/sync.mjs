@@ -23,9 +23,24 @@ import * as cursorAdapter from '../adapters/cursor.mjs'
 import * as windsurfAdapter from '../adapters/windsurf.mjs'
 import * as plainAdapter from '../adapters/plain.mjs'
 import * as chatbotAdapter from '../adapters/chatbot.mjs'
+import * as codexAdapter from '../adapters/codex.mjs'
+import * as geminiAdapter from '../adapters/gemini.mjs'
+import * as copilotAdapter from '../adapters/copilot.mjs'
+import * as clineAdapter from '../adapters/cline.mjs'
+import * as antigravityAdapter from '../adapters/antigravity.mjs'
+import * as genericAdapter from '../adapters/generic.mjs'
 import { setupAiLogs } from '../lib/ai-logs.mjs'
 import * as governanceAdapter from '../adapters/governance.mjs'
 import * as toolingAdapter from '../adapters/tooling.mjs'
+import {
+  hashContent,
+  hashFile,
+  readManifest,
+  writeManifest,
+  diffManifest,
+  detectUserEdits,
+  pruneOrphans,
+} from '../lib/manifest.mjs'
 import { exportViewerData } from './export-viewer.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -40,6 +55,10 @@ const { values: args } = parseArgs({
     verify: { type: 'boolean', default: true },
     'skip-verify': { type: 'boolean', default: false },
     yes: { type: 'boolean', default: false },  // Skip confirmation in CI environments
+    // Step 3A flags
+    prune: { type: 'boolean', default: false },       // delete orphans from target
+    uninstall: { type: 'boolean', default: false },   // remove everything in manifest
+    force: { type: 'boolean', default: false },       // overwrite user-edited files / force prune
   },
   strict: false,
 })
@@ -50,6 +69,36 @@ const ADAPTERS = {
   windsurf: windsurfAdapter,
   plain: plainAdapter,
   chatbot: chatbotAdapter,
+  codex: codexAdapter,
+  gemini: geminiAdapter,
+  copilot: copilotAdapter,
+  cline: clineAdapter,
+  antigravity: antigravityAdapter,
+  generic: genericAdapter,
+}
+
+/**
+ * Resolve the adapter for a tool entry in a profile.
+ *
+ * Priority (first match wins):
+ *   1. `config.adapter` explicitly set (e.g. `adapter: generic`)
+ *   2. A built-in adapter keyed by the tool name (e.g. `claude-code`, `kilo` if registered)
+ *   3. `generic` as a fallback — so operators can declare a new tool in YAML
+ *      without shipping an adapter, as long as they provide `output` (+ path_rewrites).
+ *
+ * Returns { adapter, resolvedName } or null if no adapter exists.
+ */
+function resolveAdapter(toolName, config) {
+  if (config.adapter && ADAPTERS[config.adapter]) {
+    return { adapter: ADAPTERS[config.adapter], resolvedName: config.adapter }
+  }
+  if (ADAPTERS[toolName]) {
+    return { adapter: ADAPTERS[toolName], resolvedName: toolName }
+  }
+  if (config.output) {
+    return { adapter: ADAPTERS.generic, resolvedName: 'generic' }
+  }
+  return null
 }
 
 // --skip-verify forcefully disables verify
@@ -94,34 +143,44 @@ async function main() {
 
     for (const [tool, config] of Object.entries(profile.tools || {})) {
       if (!config.enabled) continue
-      const adapter = ADAPTERS[tool]
-      if (!adapter) {
-        console.warn(`  ⚠️ No adapter found: ${tool}`)
+      const resolved = resolveAdapter(tool, config)
+      if (!resolved) {
+        console.warn(`  ⚠️ No adapter found: ${tool} (set 'adapter: generic' or provide 'output')`)
         continue
       }
+      const { adapter, resolvedName } = resolved
+      // Make tool name visible to the adapter (used by generic.mjs for labels)
+      const enrichedConfig = { ...config, _toolName: tool }
 
       // cursor/chatbot requires named blocks
       const namedBlocks = [
         ...Object.entries(assembled.coreBlocks).map(([name, content]) => ({ name, content })),
         ...(profile.extensions || []).map(name => ({ name, content: allBlocks[name] || '' })),
       ]
-      const input = (tool === 'cursor' || tool === 'chatbot')
+      const input = (resolvedName === 'cursor' || resolvedName === 'chatbot')
         ? namedBlocks
         : assembled.blocks
 
-      const files = adapter.generate(input, config, profile)
+      const files = adapter.generate(input, enrichedConfig, profile)
       outputFiles.push(...files.map(f => ({ ...f, tool })))
     }
 
-    // 4.5 Generate agent files
+    // 4.5 Generate agent files — delegated per-tool.
+    //    Each adapter decides its own layout/format (native copy vs role rule).
+    //    A tool that doesn't expose generateAgents is simply skipped; a tool
+    //    with `agents: { enabled: false }` in its profile block is opted out.
     const projectExtBlocks = loadBlocks(join(agentExtDir, projectName))
     const agents = assembleAgents(profile, baseAgents, projectExtBlocks)
-    for (const agent of agents) {
-      outputFiles.push({
-        path: `.claude/agents/${agent.name}.md`,
-        content: agent.content,
-        tool: 'agents',
-      })
+    if (agents.length > 0) {
+      for (const [tool, config] of Object.entries(profile.tools || {})) {
+        if (!config.enabled) continue
+        if (config.agents?.enabled === false) continue
+        const resolved = resolveAdapter(tool, config)
+        if (!resolved?.adapter?.generateAgents) continue
+        const enrichedConfig = { ...config, _toolName: tool }
+        const files = resolved.adapter.generateAgents(agents, enrichedConfig, profile)
+        outputFiles.push(...files.map(f => ({ ...f, tool: `${tool}-agents` })))
+      }
     }
 
     // 4.7 Copy docs files
@@ -237,38 +296,92 @@ async function main() {
       }
     }
 
-    // 6. --apply: copy to actual project paths (supports both array/string)
-    if (args.apply && profile.target_path) {
+    // 6. --apply / --uninstall: touch real project paths (manifest-aware)
+    //    --apply          copy files, then detect orphans/user-edits, optionally --prune
+    //    --uninstall      remove EVERY file listed in the previous manifest
+    //    --force          overwrite user-edited files and prune even if edited
+    const needsTargetAction = (args.apply || args.uninstall) && profile.target_path
+    if (needsTargetAction) {
       const targetPaths = Array.isArray(profile.target_path)
         ? profile.target_path
         : [profile.target_path]
+      const previousManifest = readManifest(outputDir)
 
+      // --uninstall: remove everything in the previous manifest, skip the rest of --apply logic.
+      if (args.uninstall) {
+        if (!previousManifest) {
+          console.log(`  ℹ️ no manifest found for ${projectName} — nothing to uninstall`)
+        } else {
+          console.log(`  🗑  uninstalling ${previousManifest.files.length} tracked file(s) from ${targetPaths.length} target(s)`)
+          if (!args['dry-run']) {
+            const report = pruneOrphans(previousManifest.files, targetPaths, { force: args.force })
+            logPruneReport(report, '    ')
+            // Remove the manifest itself on successful uninstall
+            writeManifest(outputDir, {
+              project: projectName,
+              target_paths: targetPaths,
+              synced_at: new Date().toISOString(),
+              files: [],
+            })
+          } else {
+            for (const entry of previousManifest.files) {
+              for (const t of targetPaths) {
+                console.log(`    [dry-run] 🗑  ${join(t, entry.path)}`)
+              }
+            }
+          }
+        }
+        // skip --apply logic for this profile
+        continue
+      }
+
+      // --apply path
       for (const targetPath of targetPaths) {
         if (!existsSync(targetPath)) {
           console.warn(`  ⚠️ target_path not found: ${targetPath} (skipped)`)
           continue
         }
         console.log(`  🎯 ${targetPath}`)
-        const appliedFiles = []
+
+        // Edit-guard: detect files changed locally since last sync
+        const prevFilesHere = (previousManifest?.files || []).filter(() => true)
+        const edits = detectUserEdits(prevFilesHere, [targetPath])
+        if (edits.length > 0) {
+          console.log(`    ⚠️  ${edits.length} file(s) were edited locally since last sync:`)
+          for (const e of edits) console.log(`       • ${e.path}`)
+          if (!args.force && !args.yes) {
+            console.log(`       (pass --force to overwrite them, or edit the source in ai-rules and re-sync)`)
+          }
+        }
+        const editedSet = new Set(edits.map(e => e.path))
+
+        const appliedEntries = []   // [{ path, hash, tool }]
         for (const file of outputFiles) {
           const src = join(outputDir, file.path)
           const dst = join(targetPath, file.path)
           mkdirSync(dirname(dst), { recursive: true })
+
+          // Edit-guard skip (unless --force)
+          if (!args.force && editedSet.has(file.path)) {
+            console.log(`    🔒 → ${file.path} (locally edited, skipped; use --force to overwrite)`)
+            continue
+          }
+
           if (!args['dry-run']) {
-            // ifNotExists: do not overwrite existing files
             if (file.ifNotExists && existsSync(dst)) {
               console.log(`    ⏭️  → ${file.path} (already exists, skipped)`)
               continue
             }
-            // mergeJson: deep merge new content into existing JSON (for hooks merging)
             if (file.mergeJson && existsSync(dst)) {
               const merged = mergeSettingsJson(dst, src)
               if (merged.changed) {
-                writeFileSync(dst, JSON.stringify(merged.result, null, 2) + '\n', 'utf-8')
+                const content = JSON.stringify(merged.result, null, 2) + '\n'
+                writeFileSync(dst, content, 'utf-8')
                 console.log(`    🔀 → ${file.path} (merged)`)
-                appliedFiles.push(file.path)
+                appliedEntries.push({ path: file.path, hash: hashContent(content), tool: file.tool })
               } else {
                 console.log(`    ✅ → ${file.path} (already up to date)`)
+                appliedEntries.push({ path: file.path, hash: hashFile(dst), tool: file.tool })
               }
               continue
             }
@@ -277,7 +390,7 @@ async function main() {
               try { chmodSync(dst, 0o755) } catch (_) { /* ignore on Windows */ }
             }
             console.log(`    📋 → ${file.path}`)
-            appliedFiles.push(file.path)
+            appliedEntries.push({ path: file.path, hash: hashFile(dst), tool: file.tool })
           } else {
             const skipNote = file.ifNotExists && existsSync(dst) ? ' [ifNotExists: skip]' : ''
             const mergeNote = file.mergeJson && existsSync(dst) ? ' [mergeJson]' : ''
@@ -294,18 +407,36 @@ async function main() {
         })
 
         if (!args['dry-run']) {
-          appliedFiles.push(...aiLogFiles)
+          for (const logPath of aiLogFiles) {
+            appliedEntries.push({ path: logPath, hash: hashFile(join(targetPath, logPath)), tool: 'ai-logs' })
+          }
         }
 
-        // Write sync-status.json
-        if (!args['dry-run'] && appliedFiles.length > 0) {
-          const statusPath = join(outputDir, 'sync-status.json')
-          writeFileSync(statusPath, JSON.stringify({
+        // Orphan handling: anything in previous manifest but not in this sync.
+        const { orphans } = diffManifest(previousManifest, appliedEntries.map(e => e.path))
+        if (orphans.length > 0) {
+          if (args.prune) {
+            console.log(`    🗑  pruning ${orphans.length} orphan(s)${args.force ? ' (force)' : ''}:`)
+            if (!args['dry-run']) {
+              const report = pruneOrphans(orphans, [targetPath], { force: args.force })
+              logPruneReport(report, '       ')
+            } else {
+              for (const o of orphans) console.log(`       [dry-run] 🗑  ${join(targetPath, o.path)}`)
+            }
+          } else {
+            console.log(`    ℹ️  ${orphans.length} orphan(s) from previous sync (pass --prune to remove):`)
+            for (const o of orphans) console.log(`       • ${o.path}`)
+          }
+        }
+
+        // Persist manifest (v2)
+        if (!args['dry-run'] && appliedEntries.length > 0) {
+          writeManifest(outputDir, {
             project: projectName,
             target_paths: targetPaths,
             synced_at: new Date().toISOString(),
-            files: appliedFiles,
-          }, null, 2), 'utf-8')
+            files: appliedEntries,
+          })
         }
       }
     }
@@ -325,6 +456,15 @@ async function main() {
       console.warn('\n[ai-rules] viewer data.json update failed (ignored):', e.message)
     }
   }
+}
+
+/**
+ * Pretty-print a pruneOrphans() report under the given indent.
+ */
+function logPruneReport(report, indent = '') {
+  for (const r of report.removed) console.log(`${indent}🗑  removed: ${r.path} (@ ${r.target})`)
+  for (const r of report.skipped_user_edited) console.log(`${indent}🔒 kept (locally edited): ${r.path} — pass --force to remove`)
+  for (const r of report.missing) console.log(`${indent}∅  already gone: ${r.path}`)
 }
 
 /**
@@ -390,8 +530,15 @@ function loadAgents(dir) {
 }
 
 /**
- * Assemble agent files based on profile agents section
- * @returns {{ name: string, content: string }[]}
+ * Assemble agent files based on profile agents section.
+ *
+ * Returns `{ name, frontmatter, body, content }` for every selected agent:
+ *   - frontmatter: parsed YAML object (for adapters that need structured access)
+ *   - body: body text after applying extensions/overrides
+ *   - content: full markdown (frontmatter + body) for adapters that want
+ *     to copy verbatim (e.g. claude-code)
+ *
+ * @returns {{ name: string, frontmatter: object, body: string, content: string }[]}
  */
 function assembleAgents(profile, baseAgents, agentExtBlocks) {
   const agentsConfig = profile.agents
@@ -429,9 +576,16 @@ function assembleAgents(profile, baseAgents, agentExtBlocks) {
       body += '\n\n' + overrides[agentName].trim()
     }
 
-    // Reassemble frontmatter + body
+    // Parse frontmatter once so adapters can consume structured fields.
+    let frontmatter = {}
+    try {
+      frontmatter = base.frontmatter ? (parseYaml(base.frontmatter) || {}) : {}
+    } catch (_) {
+      frontmatter = {}
+    }
+
     const content = `---\n${base.frontmatter}\n---\n${body}`
-    result.push({ name: agentName, content })
+    result.push({ name: agentName, frontmatter, body, content })
   }
 
   return result
