@@ -13,6 +13,80 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 > versioned release (e.g. `## [0.2.0] - 2026-04-08`). Until then,
 > see git commit metadata for per-change timestamps.
 
+### Added — `scaffold --tools` (single-project multi-tool agents)
+
+- **`scaffold` CLI now accepts `--tools claude-code,codex,cursor`** so the
+  single-project quick start can emit agents for all three runners in one
+  shot, without having to set up a sync profile first.
+- `claude-code` (default) and `codex` paths are handled with pure Node
+  built-ins — the zero-install guarantee still holds for them. `cursor`
+  lazily loads `js-yaml` via the real Cursor adapter to produce proper
+  MDC output; scaffold prints an actionable "run npm install" hint if the
+  dep is missing instead of crashing mid-scaffold.
+- Rules files for the new tools (`AGENTS.md`, `.cursor/rules/*.mdc`, …)
+  and all other runners remain the sync engine's responsibility, keeping
+  scaffold focused on the "new repo in 60 seconds" use case.
+- Implementation: new `engine/lib/scaffold-agents.mjs` with
+  `deployAgentsForTool()` + `parseToolsArg()`; wired into
+  `engine/lib/scaffold.mjs` (Step 2.5, now independent of the output-docs
+  copy so `--no-docs` still ships agents) and `engine/cli/scaffold.mjs`
+  (`-t, --tools` flag, warning path for unknown tools).
+
+### Added — Multi-tool agent deployment (10+ runners)
+
+- **Agents are now shipped to every enabled tool, not just Claude Code.**
+  Previously, `sync.mjs` hard-coded agent output to `.claude/agents/{name}.md`.
+  It now delegates per-tool via each adapter's new `generateAgents()` export.
+- **Seven new adapters** converting `core/agents/*.md` into each tool's native
+  layout:
+  - `codex` — native agents at `.codex/agents/`, rules at `AGENTS.md`.
+  - `cursor` — `.cursor/rules/agents/*.mdc` with `alwaysApply: false`.
+  - `windsurf` — `.windsurf/rules/agents/`.
+  - `gemini` — `.gemini/agents/` + `GEMINI.md`.
+  - `copilot` — `.github/copilot-agents/` + index + `.github/copilot-instructions.md`.
+  - `cline` — `.cline/agents/` + `.clinerules`.
+  - `antigravity` — `.agent/agents/` + `AGENTS.md` with Gemini-backend path rewrites.
+- **`generic` adapter** for long-tail runners declared purely in YAML
+  (`adapter: generic` + `output` + `path_rewrites`). Supports Kilo / Augment /
+  Trae out of the box via `examples/profiles/longtail-runners.example.yaml`
+  and makes future tools addable without any adapter code.
+- **Shared `engine/lib/agent-transform.mjs`** with frontmatter parse/stringify,
+  per-tool path rewrite tables (`CLAUDE.md` → tool-specific file,
+  `.claude/agents/` → tool-specific directory), MDC conversion, and a
+  neutralizer that rewrites Claude-only call sites (e.g. "invoke the Task tool"
+  → "act in this role") for tools without native subagent runners.
+- **Per-tool agent knobs in profile YAML**: each `tools.<tool>` entry now
+  accepts `agents: { enabled, output }` for independent opt-in/opt-out and
+  output path override.
+
+### Added — Manifest, uninstall, and safe re-sync
+
+- **`engine/lib/manifest.mjs`** — SHA256-hashed file tracking that powers:
+  1. **Orphan detection + `--prune`** — files from a previous sync that are
+     no longer emitted (e.g. because a tool was disabled) are reported on
+     every run and removed when `--prune` is passed.
+  2. **User-edit protection** — tracked files whose on-disk hash no longer
+     matches the manifest are considered locally modified; they are skipped
+     by default and reported, unless `--force` is passed.
+  3. **Clean uninstall** — `node engine/scripts/sync.mjs --uninstall --project X`
+     deletes every file listed in the previous manifest (still respecting
+     edit protection unless `--force` is set).
+- **Manifest v2 schema** (`{ version, project, target_paths, synced_at, files: [{ path, hash, tool }] }`)
+  replaces the old flat-list `sync-status.json`. v1 manifests are read
+  transparently; existing entries just lack hashes until the next full sync.
+- **New `npm` scripts**: `sync:prune`, `sync:uninstall`.
+- **New CLI flags**: `--prune`, `--uninstall`, `--force`.
+
+### Added — Adapter resolver
+
+- `resolveAdapter(toolName, config)` in `sync.mjs` routes tool entries to
+  an adapter by priority:
+  1. `config.adapter` (explicit, e.g. `adapter: generic`),
+  2. a built-in keyed by tool name (`claude-code`, `codex`, …),
+  3. `generic` fallback whenever `output` is provided.
+  This lets new tools join the pipeline declaratively without adding a JS
+  adapter file as long as they fit the "rules file + per-role context" shape.
+
 ### Changed
 
 - **INTENT.md is now an optional anchor** across all core rules.

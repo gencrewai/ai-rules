@@ -62,6 +62,25 @@ export function generate(blocks, toolConfig, profile) {
   return files
 }
 
+/**
+ * Emit one `.claude/agents/{name}.md` per agent.
+ * Claude Code is the native target, so we keep frontmatter + body verbatim.
+ *
+ * @param {Array<{ name: string, content: string }>} agents
+ * @param {object} toolConfig - tools['claude-code'] config
+ * @param {object} profile
+ * @returns {{ path: string, content: string }[]}
+ */
+export function generateAgents(agents, toolConfig, _profile) {
+  if (!agents?.length) return []
+  if (toolConfig?.agents?.enabled === false) return []
+  const outputDir = toolConfig?.agents?.output || '.claude/agents/'
+  return agents.map(a => ({
+    path: `${outputDir.replace(/\/?$/, '/')}${a.name}.md`,
+    content: a.content,
+  }))
+}
+
 // Helper to directly read extension block content (injected from sync.mjs)
 let _extensionBlocks = {}
 export function setExtensionBlocks(blocks) {

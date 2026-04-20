@@ -13,6 +13,7 @@ import { parseArgs } from 'node:util'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { scaffoldProject } from '../lib/scaffold.mjs'
+import { parseToolsArg, SCAFFOLD_AGENT_TOOLS } from '../lib/scaffold-agents.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -25,6 +26,7 @@ const { values: args } = parseArgs({
   options: {
     name:               { type: 'string',  short: 'n' },
     stack:              { type: 'string',  short: 's', default: 'react-fastapi-postgres' },
+    tools:              { type: 'string',  short: 't' },
     'no-docs':          { type: 'boolean', default: false },
     'no-git':           { type: 'boolean', default: false },
     'dev-root':         { type: 'string' },
@@ -52,6 +54,12 @@ Options:
                           Available: react-fastapi-postgres, next-fastapi-postgres,
                                     react-express-postgres, react-express-mongodb,
                                     next-none-none
+  -t, --tools             Comma-separated AI runners to deploy agents to.
+                          Default: claude-code
+                          Supported: ${SCAFFOLD_AGENT_TOOLS.join(', ')}
+                          Note: cursor requires \`npm install\` in ai-rules repo.
+                          For Gemini / Windsurf / Copilot / Cline / Antigravity /
+                          long-tail runners, use the sync engine (npm run sync).
       --no-docs           Skip output document copy
       --no-git            Skip Git initialization
   -h, --help              Help
@@ -70,6 +78,7 @@ Examples:
   node engine/cli/scaffold.mjs --name my-app
   node engine/cli/scaffold.mjs --name my-app --dev-root D:\\dev
   node engine/cli/scaffold.mjs --name my-app --stack next-none-none --no-git
+  node engine/cli/scaffold.mjs --name my-app --tools claude-code,codex,cursor
 `.trim())
   process.exit(args.help ? 0 : 1)
 }
@@ -80,11 +89,19 @@ const devRoot = args['dev-root']
   ? resolve(args['dev-root'])
   : AI_RULES_PARENT
 
+const { tools, unknown: unknownTools } = parseToolsArg(args.tools)
+if (unknownTools.length) {
+  console.warn(`warning: ignoring unsupported tool(s): ${unknownTools.join(', ')}`)
+  console.warn(`         supported by scaffold: ${SCAFFOLD_AGENT_TOOLS.join(', ')}`)
+  console.warn(`         for other runners, use the sync engine (npm run sync)`)
+}
+
 const result = await scaffoldProject({
   name: args.name,
   stack: args.stack,
   copyOutputDocs: !args['no-docs'],
   gitInit: !args['no-git'],
+  tools,
   paths: {
     devRoot,
     starterKitRoot: args['starter-kit-root'] || null,
